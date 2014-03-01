@@ -34,7 +34,7 @@ template_path = os.path.join(os.path.dirname(__file__), "templates")
 log_path = os.path.join(os.path.dirname(__file__), "logs")
 
 # The application log location
-app_log_path = os.path.join(os.path.dirname(__file__), 'log')
+app_log_file = os.path.join(os.path.dirname(__file__), 'log')
 
 # File where info about registered users is kept.
 registered_users_store = os.path.join(os.path.dirname(__file__), 'users')

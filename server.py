@@ -6,9 +6,16 @@ import tornado.web
 import tornado.auth
 import tornado.gen
 
+# Parse options and load configuration.
 import config
+# Set up the log
+# noinspection PyUnresolvedReferences
+import base.log
+
 from base import client
-from base.log import main_log
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -60,8 +67,8 @@ class ClientRequestHandler(BaseHandler):
     def post(self):
         try:
             request = json.loads(self.request.body.decode())
-            if main_log.isEnabledFor(logging.DEBUG):
-                main_log.debug("Got request: {}.".format(request))
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Got request: {}.".format(request))
             self.current_user.handle_request(request)
             self.set_status(202)
             self.write("OK")
@@ -78,8 +85,8 @@ class ClientResponseHandler(BaseHandler):
     def post(self):
         try:
             response = json.loads(self.request.body.decode())
-            if main_log.isEnabledFor(logging.DEBUG):
-                main_log.debug("Got response: {}.".format(response))
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Got response: {}.".format(response))
             self.current_user.post_response(response)
             self.set_status(202)
             self.write("OK")
@@ -194,5 +201,5 @@ application.listen(config.port)
 sweeper = tornado.ioloop.PeriodicCallback(client.remove_inactive, 60000)
 sweeper.start()
 
-main_log.info("Server started.")
+logger.info("Starting the server.")
 tornado.ioloop.IOLoop.instance().start()
