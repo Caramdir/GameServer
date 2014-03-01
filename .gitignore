@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.*.swp
+localconfig.py
+log
+logs
+static/schnapsen/
+templates/log_*.html
+users
+.idea

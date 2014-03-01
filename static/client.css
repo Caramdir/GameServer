@@ -1,0 +1,204 @@
+* {
+    font-family: sans-serif;
+    font-size: 10pt;
+}
+
+body {
+    margin: 10px;
+    padding: 0;
+}
+
+a, a:visited {
+	color: blue;
+}
+
+abbr {
+    text-transform: lowercase;
+    font-variant: small-caps;
+}
+
+#interactions {
+	overflow: auto;
+}
+
+span.choices a { padding-left:1em;}
+
+button.warning {
+    font-weight: bold;
+    color: red;
+}
+
+/*
+ * Info box
+ */
+
+#buttons {
+    position: fixed;
+    top: 5px;
+    right: 5px;
+}
+
+#info_box {
+    position: absolute;
+    border: 1px solid black;
+    width: 400px;
+    left: 50%;
+    margin-left: -200px;
+    top:50%;
+    height: 300px;
+    margin-top: -150px;
+    background-color: white;
+    z-index: 100;
+    padding: 15px;
+    overflow: auto;
+}
+
+#resign_button {
+    position: absolute;
+    bottom: 10px;
+}
+
+#info_box_close_button, #about_box_close_button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
+/*
+ * Chat
+ */
+
+#chat {
+	margin-top: 1em;
+	border-top: 1px solid black;
+	padding-top: 0.5em;
+	position: fixed;
+	bottom: 0;
+	width: 98%;
+}
+
+#chat_messages {
+	height: 6em;
+	overflow: auto;
+}
+
+#chat .system-message {
+    font-style: italic;
+}
+
+#chat .system-message_INFO {
+    color: gray;
+}
+
+#chat .system-message_WARN {
+	color: red;
+}
+
+#chat form {
+	display:inline;
+}
+
+.chat_user {
+	font-weight: bold;
+}
+
+#quit {
+	padding-left: 0.5em;
+}
+
+/*
+ * Lobby
+ */
+
+.lobby #interactions {
+	height: 6em;
+	width: 100%;
+	margin-bottom: 0.5em;
+}
+
+#lobby_player_table {
+	margin-bottom:1em;
+}
+
+#lobby_player_table td {
+	min-width: 15em;
+}
+
+#lobby_switcher {
+	float: right;
+}
+
+#about_div {
+    position: absolute;
+    top: 20px;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: #ffffff;
+    border: 1px solid #000000;
+    z-index: 2;
+    padding: 10px;
+    overflow: auto;
+}
+
+#lobby_propose_form {
+    border-top: 1px solid gray;
+    padding-top: 1em;
+}
+
+#lobby_propose_options {
+    display: inline;
+}
+
+#automatch label {
+    margin-right: 1em;
+}
+
+/*
+ * Game basics
+ */
+
+.disabled {
+	opacity: 0.2;
+}
+
+.unselected {
+	opacity: 0.5;
+}
+
+.selected {
+}
+
+
+.selectable {
+	cursor: pointer;
+}
+
+#waiting_message {
+    font-style: italic;
+}
+
+/*
+ * Log
+ */
+
+#log {
+    font-family: inherit;
+}
+
+#log .header_1, #log .header_2 {
+    line-height: 2em;
+    text-transform: lowercase;
+    font-variant: small-caps;
+    font-weight: bold;
+    -moz-font-feature-settings: "onum";
+    -ms-font-feature-settings: "onum";
+    -webkit-font-feature-settings: "onum";
+    font-feature-settings: "onum";
+}
+
+#log .header_1 {
+    font-size: large;
+}
+
+

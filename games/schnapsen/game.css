@@ -1,0 +1,81 @@
+@font-face {
+    font-family: 'DejaVu Sans';
+    src: url('/static/fonts/dejavusans.eot');
+    src: url('/static/fonts/dejavusans.eot?#iefix') format('embedded-opentype'),
+         url('/static/fonts/dejavusans.woff') format('woff'),
+         url('/static/fonts/dejavusans.ttf') format('truetype'),
+         url('/static/fonts/dejavusans.svg#dejavu_sansbook') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+#main.schnapsen {
+	vertical-align: bottom;
+}
+
+.schnapsen .suit-black { color: black;}
+.schnapsen .suit-red { color: red; }
+.schnapsen .card {
+    font-family: "DejaVu Sans", sans-serif;
+}
+
+.schnapsen #play_area {
+    display: inline-block;
+    width: 250px;
+    vertical-align: top;
+    margin: 0;
+    padding: 0;
+}
+
+.schnapsen #deck {
+    font-size: xx-large;
+    padding-top: 10px;
+    padding-left: 10px;
+}
+
+.schnapsen #deck .open-card {
+    display: inline-block;
+    transform: rotate(270deg);
+    -ms-transform: rotate(270deg);
+    -webkit-transform: rotate(270deg);
+    margin-right: 5px;
+}
+
+.schnapsen #current_trick {
+    font-size: 500%;
+    text-align: center;
+    width: 2em;
+    margin-left: -1em;
+    position: relative;
+    left:50%;
+    top: 1em;
+}
+
+.schnapsen #log {
+    margin: 0;
+    padding-left: 10px;
+    display: inline-block;
+    overflow: auto;
+    vertical-align: top;
+}
+
+.schnapsen #interactions {
+	height: 2em;
+    padding: 0.5em 0.5em 0.5em 7px;
+}
+
+.schnapsen span.choices a {
+    padding-right: 1em;
+    padding-left: 0;
+}
+
+.schnapsen #hand {
+    font-size: xx-large;
+    margin-bottom: 0.5em;
+    height: 1em;
+}
+
+.schnapsen #hand .card {
+    padding: 7px;
+}

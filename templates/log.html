@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="/static/client.css" />
+    {% block head %}
+    {% end %}
+</head>
+<body class="{{ game }}">
+<pre id="log">
+{% raw entries %}
+</pre>
+</body>
+</html>

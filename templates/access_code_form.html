@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Welcome</title>
+    <link rel="stylesheet" type="text/css" href="/static/client.css" />
+</head>
+<body>
+<div id="main">
+    {% if wrong_code %}
+        The code was wrong.
+    {% end %}
+    <form action="/set_access_code" method="POST" >
+        <label for="access_code">Access code:</label>
+        <input type="text" id="access_code" name="access_code" />
+    </form>
+</div>
+</body>
+</html>

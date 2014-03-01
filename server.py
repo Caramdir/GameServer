@@ -1,0 +1,198 @@
+import json
+import logging
+
+import tornado.ioloop
+import tornado.web
+import tornado.auth
+import tornado.gen
+
+from config import *
+from base import client
+from base.log import main_log
+
+
+class BaseHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        try:
+            if DEVTEST:
+                id = self.request.path.split("/")[-1]
+            else:
+                id = self.get_secure_cookie("client_id")
+            return client.get(int(id))
+        except (client.ClientDoesNotExistError, ValueError, TypeError):
+            return None
+
+    def redirect_if_logged_in(self):
+        if self.current_user:
+            self.redirect("/play")
+            return True
+        return False
+
+
+class MainHandler(BaseHandler):
+    """Show the main interface."""
+    @tornado.web.authenticated
+    def get(self):
+        self.render("client.html", client=self.current_user, devtest=DEVTEST)
+
+
+class WaitHandler(BaseHandler):
+    """The long polling URI where we wait for new messages."""
+    @tornado.web.authenticated
+    @tornado.web.asynchronous
+    def get(self):
+        self.current_user.messages.wait_for_messages(self.on_new_messages)
+
+    def on_new_messages(self, disconnect=False):
+        if self.request.connection.stream.closed():
+            return
+        if disconnect:
+            self.finish(json.dumps([{"command": "quit", "reason": "Connected in different window."}]).encode())
+            return
+        self.set_header("Content-Type", "application/json")
+        msgs = self.current_user.messages.get_all()
+        self.finish(json.dumps(msgs).encode())
+
+
+class ClientRequestHandler(BaseHandler):
+    """The client sends a request."""
+    @tornado.web.authenticated
+    def post(self):
+        try:
+            request = json.loads(self.request.body.decode())
+            if main_log.isEnabledFor(logging.DEBUG):
+                main_log.debug("Got request: {}.".format(request))
+            self.current_user.handle_request(request)
+            self.set_status(202)
+            self.write("OK")
+        except Exception as e:
+            self.current_user.notify_of_exception(e)
+            raise
+        finally:
+            client.send_all_messages()
+
+
+class ClientResponseHandler(BaseHandler):
+    """The client sends a response."""
+    @tornado.web.authenticated
+    def post(self):
+        try:
+            response = json.loads(self.request.body.decode())
+            if main_log.isEnabledFor(logging.DEBUG):
+                main_log.debug("Got response: {}.".format(response))
+            self.current_user.post_response(response)
+            self.set_status(202)
+            self.write("OK")
+        except Exception as e:
+            self.current_user.notify_of_exception(e)
+            raise
+        finally:
+            client.send_all_messages()
+
+
+class StartHandler(BaseHandler):
+    """This is the first page a user sees. It will present them with various login options."""
+    def get(self):
+        if access_code:
+            if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != access_code:
+                self.render("access_code_form.html", wrong_code=False)
+                return
+        if DEVTEST and disable_stored_logins:
+            self.redirect("/login/local")
+            return
+        self.render("login.html", logged_in=bool(self.current_user), disable_stored_logins=disable_stored_logins)
+
+
+class AccessCodeHandler(BaseHandler):
+    """Checks whether a given access code was correct and then sets the cookie."""
+    # todo: Also check the access code when going directly to /login/{local,google}
+    def post(self, *args, **kwargs):
+        if self.get_argument("access_code") == access_code:
+            self.set_secure_cookie("access_code", access_code)
+            self.redirect("/")
+        else:
+            self.render("access_code_form.html", wrong_code=True)
+
+
+class BaseLoginHandler(BaseHandler):
+    """Base class for login handlers."""
+
+    def disconnect_existing_client(self):
+        """Disconnect any already existing client from the same browser."""
+        if self.current_user:
+            self.current_user.quit("You logged in again in a different window.")
+
+    def redirect_to_welcome(self, c):
+        if DEVTEST:
+            self.redirect("/play/" + str(c.id))
+        else:
+            self.set_secure_cookie("client_id", str(c.id))
+            self.redirect("/play/")
+
+
+class UnregisteredLoginHandler(BaseLoginHandler):
+    """Logging in without registering."""
+    def get(self):
+        self.disconnect_existing_client()
+        c = client.Client()
+        if DEVTEST and devtest_direct_login:
+            c.move_to(GAMES[default_game]["lobby"])
+        self.redirect_to_welcome(c)
+
+
+class GoogleLoginHandler(BaseLoginHandler, tornado.auth.GoogleMixin):
+    """Logging in via Google."""
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        if disable_stored_logins:
+            self.redirect('/')
+            return
+        if self.get_argument("openid.mode", None):
+            user = yield self.get_authenticated_user()
+            self.disconnect_existing_client()
+            c = client.registration_handler.get_client(user["claimed_id"])
+            try:
+                if not c.name:
+                    c.name = user["name"]
+            except client.InvalidClientNameError:
+                pass
+            self.redirect_to_welcome(c)
+        else:
+            yield self.authenticate_redirect()
+
+
+class QuitHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self):
+        self.current_user.quit()
+        self.redirect("/")
+
+
+application = tornado.web.Application(
+    [
+        (r"/play.*", MainHandler),
+        (r"/wait.*", WaitHandler),
+        (r"/request.*", ClientRequestHandler),
+        (r"/response.*", ClientResponseHandler),
+        (r"/", StartHandler),
+        (r"/set_access_code", AccessCodeHandler),
+        (r"/login", StartHandler),
+        (r"/login/local", UnregisteredLoginHandler),
+        (r"/login/google", GoogleLoginHandler),
+        (r"/quit.*", QuitHandler),
+    ],
+    login_url="/login",
+    template_path=template_path,
+    static_path=static_path,
+    cookie_secret=cookie_secret,
+    xheaders=True,
+)
+
+application.listen(9999)    # todo: Make the port configurable.
+
+sweeper = tornado.ioloop.PeriodicCallback(client.remove_inactive, 60000)
+sweeper.start()
+
+main_log.info("Server started.")
+tornado.ioloop.IOLoop.instance().start()

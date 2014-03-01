@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Welcome</title>
+    <link rel="stylesheet" type="text/css" href="/static/client.css" />
+</head>
+<body>
+<div id="main">
+    {% if logged_in %}
+        You are already logged in (maybe in a different browser window).
+        <a href="/play">Go back to the playing area.</a>
+    {% end %}
+    <ul>
+    {% if not disable_stored_logins %}
+        <li><a href="/login/google">Log in with your Google account.</a></li>
+    {% end %}
+        <li><a href="/login/local">Continue without logging in.</a></li>
+    </ul>
+    <hr />
+    <p>
+        This is a proof-of-concept website.
+        It has only been tested thoroughly on current Firefox (Linux).
+        It will probably not work correctly with older browsers or operating systems (in particular Internet Explorer 8 and older).
+    </p><p>
+        Cookies must be allowed for this site (they are needed to store your login while connected and can be discarded afterwards).
+        JavaScript must be allowed from this site and from <code>ajax.googleapis.com</code>.
+    </p>
+</div>
+</body>
+</html>
