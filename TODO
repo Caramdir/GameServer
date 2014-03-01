@@ -1,0 +1,69 @@
+Current development
+===================
+* Logins:
+  • Reconnect a registered user if already logged in.
+  • Write a better start/login options page.
+* Proposals:
+  • UI: "Select players below" or similar prompt.
+* Auto-Match:
+  • Automatch proposal strings.
+
+Bugs
+====
+* Deck._on_empty_deck() should only be called when the deck is completely empty.
+* Schnapsen:
+  • cancel_interactions does not work correctly (cards are still clickable).
+
+Mid-term
+========
+* Improvements
+  • Split session and user ids.
+  • Add general game information to the "about" button (rules, link to BGG and stores).
+  • Log the correct IP.
+  • Minify JavaScript files.
+  • Subset the cards font.
+  • Coroutinify the code.
+  • Do not show resign button after the game ended or when the player already resigned.
+* Features
+  • Enable certain games only for certain clients.
+  • Force-resign on inactivity.
+  • Log chat messages.
+  • Location.leave() should take a "reason" argument.
+  • Allow more OpenID providers.
+  • Allow waking only the current player
+* UI
+  • The resignation log entry should be made to stand out (eg bold).
+  • Add custom error pages (404, 500).
+  • Make the about box nicer.
+* Code improvements
+  • Abstract out console.log(), so that there is no problem with IE.
+  • Don't do /wait/NaN, /request/NaN, etc.
+  • JS: General ui function should be put into the ui module.
+  • (Clean up circular references when game ends.)
+  • Make passing the id in a response more automatic.
+  • Make writing of the users file atomic.
+  • Do logging correctly.
+  • Add forEach to array prototype if not available.
+  • Rename the old json parameters (to data, params, ...)
+  • Unset cookies after logout.
+* Handle exceptions better.
+* Admin:
+  • Make it possible to reload templates.
+  • Statistics
+  • kill/restart the server
+* Schnapsen:
+  • Allow to play a full Bummerl.
+  • Add rules overview to the about box.
+
+Long-term
+=========
+* Improvements
+  • Do not disconnect clients, but only set them to "away".
+* Features:
+  • Use a communication protocol with less reconnections (WebSockets?).
+  • Rankings.
+  • Achievements
+  • Let people watch a game.
+  • Make it possible to update the server without restarting it.
+  • Use Gravatars.
+* More games.
