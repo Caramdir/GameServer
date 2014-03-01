@@ -6,7 +6,7 @@ import tornado.web
 import tornado.auth
 import tornado.gen
 
-from config import *
+import config
 from base import client
 from base.log import main_log
 
@@ -14,7 +14,7 @@ from base.log import main_log
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         try:
-            if DEVTEST:
+            if config.DEVTEST:
                 id = self.request.path.split("/")[-1]
             else:
                 id = self.get_secure_cookie("client_id")
@@ -33,7 +33,7 @@ class MainHandler(BaseHandler):
     """Show the main interface."""
     @tornado.web.authenticated
     def get(self):
-        self.render("client.html", client=self.current_user, devtest=DEVTEST)
+        self.render("client.html", client=self.current_user, devtest=config.DEVTEST)
 
 
 class WaitHandler(BaseHandler):
@@ -93,22 +93,22 @@ class ClientResponseHandler(BaseHandler):
 class StartHandler(BaseHandler):
     """This is the first page a user sees. It will present them with various login options."""
     def get(self):
-        if access_code:
-            if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != access_code:
+        if config.access_code:
+            if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != config.access_code:
                 self.render("access_code_form.html", wrong_code=False)
                 return
-        if DEVTEST and disable_stored_logins:
+        if config.DEVTEST and config.disable_stored_logins:
             self.redirect("/login/local")
             return
-        self.render("login.html", logged_in=bool(self.current_user), disable_stored_logins=disable_stored_logins)
+        self.render("login.html", logged_in=bool(self.current_user), disable_stored_logins=config.disable_stored_logins)
 
 
 class AccessCodeHandler(BaseHandler):
     """Checks whether a given access code was correct and then sets the cookie."""
     # todo: Also check the access code when going directly to /login/{local,google}
     def post(self, *args, **kwargs):
-        if self.get_argument("access_code") == access_code:
-            self.set_secure_cookie("access_code", access_code)
+        if self.get_argument("access_code") == config.access_code:
+            self.set_secure_cookie("access_code", config.access_code)
             self.redirect("/")
         else:
             self.render("access_code_form.html", wrong_code=True)
@@ -123,7 +123,7 @@ class BaseLoginHandler(BaseHandler):
             self.current_user.quit("You logged in again in a different window.")
 
     def redirect_to_welcome(self, c):
-        if DEVTEST:
+        if config.DEVTEST:
             self.redirect("/play/" + str(c.id))
         else:
             self.set_secure_cookie("client_id", str(c.id))
@@ -135,8 +135,8 @@ class UnregisteredLoginHandler(BaseLoginHandler):
     def get(self):
         self.disconnect_existing_client()
         c = client.Client()
-        if DEVTEST and devtest_direct_login:
-            c.move_to(GAMES[default_game]["lobby"])
+        if config.DEVTEST and config.devtest_direct_login:
+            c.move_to(config.GAMES[config.default_game]["lobby"])
         self.redirect_to_welcome(c)
 
 
@@ -145,7 +145,7 @@ class GoogleLoginHandler(BaseLoginHandler, tornado.auth.GoogleMixin):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        if disable_stored_logins:
+        if config.disable_stored_logins:
             self.redirect('/')
             return
         if self.get_argument("openid.mode", None):
@@ -183,13 +183,13 @@ application = tornado.web.Application(
         (r"/quit.*", QuitHandler),
     ],
     login_url="/login",
-    template_path=template_path,
-    static_path=static_path,
-    cookie_secret=cookie_secret,
+    template_path=config.template_path,
+    static_path=config.static_path,
+    cookie_secret=config.cookie_secret,
     xheaders=True,
 )
 
-application.listen(9999)    # todo: Make the port configurable.
+application.listen(config.port)
 
 sweeper = tornado.ioloop.PeriodicCallback(client.remove_inactive, 60000)
 sweeper.start()
