@@ -30,11 +30,14 @@ static_path = os.path.join(os.path.dirname(__file__), "static")
 # The folder where template files are kept
 template_path = os.path.join(os.path.dirname(__file__), "templates")
 
-# The folder where game log files are kept
+# The folder where server log files are kept
 log_path = os.path.join(os.path.dirname(__file__), "logs")
 
 # The application log location
-app_log_file = os.path.join(os.path.dirname(__file__), 'log')
+main_log_file = os.path.join(log_path, 'server.log')
+
+# The folder where server game log files are kept
+game_log_path = os.path.join(os.path.dirname(__file__), "game_logs")
 
 # File where info about registered users is kept.
 registered_users_store = os.path.join(os.path.dirname(__file__), 'users')

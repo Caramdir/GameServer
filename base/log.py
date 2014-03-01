@@ -16,7 +16,7 @@ log_config = {
             'formatter': 'standard',
             'level': 'DEBUG' if config.DEVTEST else "INFO",
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': config.app_log_file,
+            'filename': config.main_log_file,
             'maxBytes': 1024*1024,
             'backupCount': 5,
         },

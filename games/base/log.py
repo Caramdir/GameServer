@@ -2,7 +2,7 @@ import hashlib
 import time
 import os
 
-from config import log_path
+from config import game_log_path
 import base.tools
 
 
@@ -182,7 +182,7 @@ class Log:
         filename = game + "_" + hashlib.sha1(str(time.clock()).encode()).hexdigest() + ".html"
         entries = "\n".join([entry.get_message(player) for entry in self.entries])
         t = base.tools.template_loader.load(template)
-        with open(os.path.join(log_path, filename), 'wb') as file:
+        with open(os.path.join(game_log_path, filename), 'wb') as file:
             file.write(t.generate(entries=entries, game=game))
         return filename
 
