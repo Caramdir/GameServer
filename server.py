@@ -12,6 +12,7 @@ import config
 # noinspection PyUnresolvedReferences
 import base.log
 import base.client
+import base.locations
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,10 @@ class BaseLoginHandler(BaseHandler):
             self.current_user.quit("You logged in again in a different window.")
 
     def redirect_to_welcome(self, c):
+        c.move_to(base.locations.welcome_location)
+        self.redirect_to_play(c)
+
+    def redirect_to_play(self, c):
         if config.DEVTEST:
             self.redirect("/play/" + str(c.id))
         else:
@@ -151,7 +156,9 @@ class UnregisteredLoginHandler(BaseLoginHandler):
         c = base.client.Client()
         if config.DEVTEST and config.devtest_direct_login:
             c.move_to(config.GAMES[config.default_game]["lobby"])
-        self.redirect_to_welcome(c)
+            self.redirect_to_play(c)
+        else:
+            self.redirect_to_welcome(c)
 
 
 class GoogleLoginHandler(BaseLoginHandler, tornado.auth.GoogleMixin):

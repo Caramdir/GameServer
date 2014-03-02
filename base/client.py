@@ -7,10 +7,9 @@ import os
 from concurrent.futures import Future
 from collections import deque
 
-import tornado.gen
-
 import config
 from base.interface import BasicUI, CoroutineUI
+from base.tools import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class RegistrationHandler():
         """Get a client with the given OpenID identifier."""
         c = Client()
         c.is_registered = True
-        c.identifier = identifier
+        c.registration_identifier = identifier
         name = self.get_name_of(identifier)
         if name:
             c.name = name
@@ -51,8 +50,8 @@ class RegistrationHandler():
 
     def store_client(self, client):
         assert client.is_registered, "Can only store registered clients."
-        if client.identifier not in self.registered_clients or self.registered_clients[client.identifier] != client.name:
-            self.registered_clients[client.identifier] = client.name
+        if client.registration_identifier not in self.registered_clients or self.registered_clients[client.registration_identifier] != client.name:
+            self.registered_clients[client.registration_identifier] = client.name
             self.save_to_file()
 
     def get_name_of(self, identifier):
@@ -150,52 +149,56 @@ class RequestHandler:
 
 
 class Client:
-    """The main class for a client."""
+    """
+    The main class for a client.
+
+    All communication to and from the user's browser passes through an instance of this class.
+    """
 
     def __init__(self):
-        """Initialize the client and add it to the list of clients.
+        """
+        Initialize the client and add it to the list of clients.
+
         The client will always start out in the welcome location.
         """
         super().__init__()
         self.id = get_next_id()
         self.is_admin = False
         self.is_registered = False
-        self._identifier = None
+        self._registration_identifier = None
 
-        self._name = None
         self._name = ""
         self.html = ""
 
-        self.game = None
         self.last_activity = time.time()
 
         self.messages = MessageQueue()
-        self.next_id = 1                # todo: make private
-        self.sent_queries = {}          # todo: make private
-        self._queries = {}          # holds futures of the coroutine interface
+        self._next_query_id = 1
+        self.sent_queries = {}          # todo: remove when send_query is removed
+        self._queries = {}              # holds futures of the coroutine interface
+
+        # todo: All UI should be via coroutines.
         self.ui = BasicUI(self)
         self.coroutine_ui = CoroutineUI(self)
 
-        self.chat_enabled = True
-        self._chat_messages = deque(maxlen=10)
+        self._chat_enabled = True
+        self._chat_history = deque(maxlen=10)
+
+        self.location = None
 
         BY_ID[self.id] = self
 
-        import base.locations
-        self.location = base.locations.welcome_location
-        self.location.join(self)
-
+        # automatically set a user name in DEVTEST instances
         if config.DEVTEST:
-            self._name = "user" + str(self.id)
-            self.html = self._name
+            self.name = "user" + str(self.id)
 
     @property
-    def identifier(self):
-        return self._identifier
+    def registration_identifier(self):
+        return self._registration_identifier
 
-    @identifier.setter
-    def identifier(self, value):
-        self._identifier = value
+    @registration_identifier.setter
+    def registration_identifier(self, value):
+        self._registration_identifier = value
         if value in config.admin_users:
             self.is_admin = True
 
@@ -220,13 +223,21 @@ class Client:
         if [id for id in BY_ID if BY_ID[id].name.lower() == lc_val and id != self.id]:
             raise InvalidClientNameError(self, value, "This name is already in use.")
 
-        if not registration_handler.is_name_available(value, self.identifier):
+        if not registration_handler.is_name_available(value, self.registration_identifier):
             raise InvalidClientNameError(self, value, "This name is already in use.")
+
+        if self._name:
+            logger.info("Changing user {}'s name to {}.".format(self._name, value))
+        else:
+            logger.info("Creating a user with name {}.".format(value))
 
         self._name = value
         self.html = html.escape(value)
         if self.is_registered:
             registration_handler.store_client(self)
+
+    def __str__(self):
+        return self.html
 
     def quit(self, reason=""):
         """The client disconnects or is disconnected.
@@ -251,28 +262,23 @@ class Client:
         self.last_activity = time.time()
 
     def handle_request(self, data):
-        """Handle a request from a client, usually by passing it to the location or game.
+        """Handle a request from a client, usually by passing it to the location.
 
-        The location/game has to implement the RequestHandler interface.
+        The location has to implement the RequestHandler interface.
 
         The request "current_state" is used for reconnecting clients to request all the info that they lost (e.g. on a
         page refresh).
 
         Possible commands:
-        * chat.message: Send a chat message.
+        * current_state
+        * go_to_admin
         """
         self.touch()
-        if not "command" in data:
-            # TODO: Log this (WARN)
-            return
 
-        command = data["command"]
-
-        if command == "chat.message":
-            self.distribute_chat_message(data["message"].strip())
-            if config.DEVTEST and data["message"].startswith("cheat: "):
-                self.location.cheat(self, data["message"][7:])
-            return
+        try:
+            command = data["command"]
+        except KeyError:
+            raise ClientCommunicationError("Request without a command.")
 
         if command == "current_state":
             self.messages.clear()       # We are supposed to resend everything, so remove old messages.
@@ -287,7 +293,7 @@ class Client:
             if not config.DEVTEST:
                 msg["cache_control"] = config.cache_control
             self.send_message(msg)
-            if self.chat_enabled:
+            if self._chat_enabled:
                 self.send_message({"command": "chat.enable"})
                 self._resend_chat_messages()
             if self.location:
@@ -317,69 +323,58 @@ class Client:
             logger.debug("Sending the following message to {}:\n{}".format(self.html, pprint.pformat(item)))
         self.messages.put(item)
 
-    def distribute_chat_message(self, message):
-        """Send a chat message to everyone in the current location.
-
-        @param message: The chat message to be sent.
-        @type message: str
-        """
-        if not message or not self.location or not self.location.has_chat:
-            return
-        cmd = {
-            "command": "chat.receive_message",
-            "client": self.html,
-            "message": message,
-            "time": time.time()
-        }
-        [c.send_chat_message(cmd) for c in self.location.clients]
-
     def send_chat_message(self, item):
         """Send a chat message to the client.
 
         @param item: The chat command to be sent.
         @type item: dict
         """
-        if self.chat_enabled:
-            self._chat_messages.append(item)
+        self._chat_history.append(item)
+        if self._chat_enabled:
             self.send_message(item)
 
     def enable_chat(self):
         """Enable the chat."""
-        if not self.chat_enabled:
-            self.chat_enabled = True
+        if not self._chat_enabled:
+            self._chat_enabled = True
             self.send_message({"command": "chat.enable"})
             self._resend_chat_messages()
 
     def disable_chat(self):
         """Disable the chat."""
-        if self.chat_enabled:
-            self.chat_enabled = False
+        if self._chat_enabled:
+            self._chat_enabled = False
             self.send_message({"command": "chat.disable"})
 
     def _resend_chat_messages(self):
-        """Resend all chat messages in [self._chat_messages]."""
-        if self.chat_enabled:
-            [self.send_message(msg) for msg in self._chat_messages]
+        """Resend all chat messages in `self._chat_history`."""
+        if self._chat_enabled:
+            [self.send_message(msg) for msg in self._chat_history]
+
+    def get_next_query_id(self):
+        id = self._next_query_id
+        self._next_query_id += 1
+        return id
 
     def query(self, command, **kwargs):
         """Send a query to the UI that asks for user feedback
 
-        @param command: The UI command.
-        @param kwargs: The parameters to the command.
-        @return: A future which will receive the response (which is always a dict)
-        @rtype: Future
+        :param command: The UI command.
+        :param kwargs: The parameters to the command.
+        :return: A future which will receive the response (which is always a dict)
+        :rtype: Future
         """
         # todo: The sending should be abstracted into an Executor subclass
         query = kwargs
         query["command"] = command
-        query["id"] = self.next_id
-        self.next_id += 1
+        query["id"] = self.get_next_query_id()
         future = Future()
         self._queries[query["id"]] = {"query": query, "future": future}
         self.send_message(query)
         send_all_messages()
         return future
 
+    @deprecated
     def send_query(self, query, callback, params=None):
         """Send a query to the UI that asks for user feedback.
 
@@ -394,8 +389,7 @@ class Client:
         """
         if not params:
             params = {}
-        query["id"] = self.next_id
-        self.next_id += 1
+        query["id"] = self.get_next_query_id()
         self.sent_queries[query["id"]] = {"query": query, "callback": callback, "params": params}
         self.send_message(query)
         send_all_messages()
@@ -417,13 +411,13 @@ class Client:
     def cancel_interactions(self, exception=None):
         """Stop all current interactions.
 
-        @param exception: Exception to pass to all waiting functions (in the coroutine interface).
-        @type exception: Exception
+        :param exception: Exception to pass to all waiting functions (in the coroutine interface).
+        :type exception: Exception
         """
         if exception:
             assert isinstance(exception, Exception)
-            for future in self._queries.values():
-                future.set_exception(exception)
+            for query in self._queries.values():
+                query["future"].set_exception(exception)
 
         self._queries = {}
         self.sent_queries = {}
@@ -433,10 +427,11 @@ class Client:
         """Notify the user that an exception occurred.
         :type e: Exception
         """
-        if isinstance(e, ClientCommunicationError):
-            self.distribute_chat_message("Communication error. Expect weird things. [{}]".format(str(e)))
-        else:
-            self.distribute_chat_message("An error occurred. Expect weird things. [{}]".format(str(e)))
+        if self.location:
+            if isinstance(e, ClientCommunicationError):
+                self.location.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
+            else:
+                self.location.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
 
 
 class NullClient():

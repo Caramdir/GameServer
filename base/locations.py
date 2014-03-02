@@ -1,14 +1,14 @@
 import time
 
-from config import GAMES, DEVTEST
+from config import GAMES
 import config
-from base.client import RequestHandler, InvalidClientNameError
+import base.client
 from base.log import main_log
 
 ALL = set()
 
 
-class Location(RequestHandler):
+class Location(base.client.RequestHandler):
     """Abstract superclass for locations where clients/players can be (lobbies and games are locations)."""
     def __init__(self, clients=set(), persistent=False, has_chat=True):
         """
@@ -46,7 +46,23 @@ class Location(RequestHandler):
         """Implement RequestHandler interface.
 
         Possible commands:
+         * chat.message
         """
+        if command == "chat.message":
+            message = data["message"].strip()
+            if message:
+                if config.DEVTEST and data["message"].startswith("cheat: "):
+                    self.cheat(self, data["message"][7:])
+                cmd = {
+                    "command": "chat.receive_message",
+                    "client": client.html,
+                    "message": message,
+                    "time": time.time()
+                }
+                for c in self.clients:
+                    c.send_chat_message(cmd)
+                base.client.send_all_messages()
+            return True
         return super().handle_request(client, command, data)
 
     def cheat(self, client, command):
@@ -64,6 +80,7 @@ class Location(RequestHandler):
         d = {"command": "chat.system_message", "message": text, "level": level, "time": time.time()}
         for c in self.clients:
             c.send_chat_message(d)
+        base.client.send_all_messages()
 
 
 class WelcomeLocation(Location):
@@ -86,7 +103,7 @@ class WelcomeLocation(Location):
                 client.name = data["name"]
                 main_log.info("Created client {}.".format(client.name))
                 client.move_to(GAMES[data["game"]]["lobby"])
-            except InvalidClientNameError as e:
+            except base.client.InvalidClientNameError as e:
                 client.send_message({
                     "command": "welcome.invalid_name",
                     "reason": e.reason,
