@@ -3,27 +3,26 @@ import time
 import pprint
 import logging
 import json
+import os
 from concurrent.futures import Future
 from collections import deque
 
 import tornado.gen
 
-from config import DEVTEST, cache_control, registered_users_store
 import config
-
 from base.interface import BasicUI, CoroutineUI
-from base.log import main_log
 
+logger = logging.getLogger(__name__)
 
 BY_ID = {}                      # list of all clients
-next_id = 1                     # id for next client created
+_next_id = 1                    # id for next client created
 
 
 def get_next_id():
     """Return the next available client id and increase the counter."""
-    global next_id
-    id = next_id
-    next_id += 1
+    global _next_id
+    id = _next_id
+    _next_id += 1
     return id
 
 
@@ -41,6 +40,7 @@ class RegistrationHandler():
         self.load_from_file()
 
     def get_client(self, identifier):
+        """Get a client with the given OpenID identifier."""
         c = Client()
         c.is_registered = True
         c.identifier = identifier
@@ -63,23 +63,25 @@ class RegistrationHandler():
 
     def is_name_available(self, name, except_identifier=None):
         name = name.lower()
-        matches = [id for id in self.registered_clients
-                   if self.registered_clients[id].lower() == name and id != except_identifier]
-        return len(matches) == 0
+        for identifier, other_name in self.registered_clients.items():
+            if other_name.lower() == name and identifier != except_identifier:
+                return False
+        return True
 
     def save_to_file(self):
         """Save the users to file."""
-        # todo: make this atomic
-        with open(registered_users_store, "w") as f:
+        os.rename(config.registered_users_store, config.registered_users_store + ".bak")
+        with open(config.registered_users_store, "w") as f:
             json.dump(self.registered_clients, f)
 
     def load_from_file(self):
         """Load the users from the file."""
         try:
-            with open(registered_users_store, "r") as f:
+            with open(config.registered_users_store, "r") as f:
                 self.registered_clients = json.load(f)
         except FileNotFoundError:
-            main_log.warning("Users file does not exist.")
+            logger.warning("Users file does not exist.")
+            open(config.registered_users_store, 'a').close()
             self.registered_clients = {}
 
 
@@ -91,9 +93,9 @@ def remove_inactive(timeout=600):
 
     :param timeout: Number of seconds without activity after which a client is considered inactive.
     """
-    k = [BY_ID[id] for id in BY_ID if time.time() - BY_ID[id].last_activity > timeout]
+    k = [c for c in BY_ID.values() if time.time() - c.last_activity > timeout]
     for c in k:
-        c.quit("inactivity")
+        c.quit("You were inactive for more than {} minutes.".format(int(timeout/60)))
     send_all_messages()
 
 
@@ -133,7 +135,11 @@ class InvalidClientNameError(Exception):
 class RequestHandler:
     """Abstract base class for classes that can handle client requests."""
     def handle_request(self, client, command, parameters):
-        """Handle a general request from the client."""
+        """Handle a general request from the client.
+
+        :return: Return True if the request was handled and False otherwise.
+        :rtype : bool
+        """
         return False
 
     def handle_reconnect(self, client):
@@ -149,8 +155,6 @@ class Client:
     def __init__(self):
         """Initialize the client and add it to the list of clients.
         The client will always start out in the welcome location.
-
-        :param name: Name of the client/player (i.e. the username).
         """
         super().__init__()
         self.id = get_next_id()
@@ -181,7 +185,7 @@ class Client:
         self.location = base.locations.welcome_location
         self.location.join(self)
 
-        if DEVTEST:
+        if config.DEVTEST:
             self._name = "user" + str(self.id)
             self.html = self._name
 
@@ -266,7 +270,7 @@ class Client:
 
         if command == "chat.message":
             self.distribute_chat_message(data["message"].strip())
-            if DEVTEST and data["message"].startswith("cheat: "):
+            if config.DEVTEST and data["message"].startswith("cheat: "):
                 self.location.cheat(self, data["message"][7:])
             return
 
@@ -277,11 +281,11 @@ class Client:
                 "command": "set_client_info",
                 "id": self.id,
                 "name": self.html,
-                "devtest": DEVTEST,
+                "devtest": config.DEVTEST,
                 "admin": self.is_admin,
             }
-            if not DEVTEST:
-                msg["cache_control"] = cache_control
+            if not config.DEVTEST:
+                msg["cache_control"] = config.cache_control
             self.send_message(msg)
             if self.chat_enabled:
                 self.send_message({"command": "chat.enable"})
@@ -309,8 +313,8 @@ class Client:
 
         :type item: dict
         """
-        if main_log.isEnabledFor(logging.DEBUG):
-            main_log.debug("Sending the following message to {}:\n{}".format(self.html, pprint.pformat(item)))
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Sending the following message to {}:\n{}".format(self.html, pprint.pformat(item)))
         self.messages.put(item)
 
     def distribute_chat_message(self, message):

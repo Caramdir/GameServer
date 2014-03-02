@@ -41,7 +41,6 @@ Mid-term
   • JS: General ui function should be put into the ui module.
   • (Clean up circular references when game ends.)
   • Make passing the id in a response more automatic.
-  • Make writing of the users file atomic.
   • Do logging correctly.
   • Add forEach to array prototype if not available.
   • Rename the old json parameters (to data, params, ...)
@@ -66,4 +65,5 @@ Long-term
   • Let people watch a game.
   • Make it possible to update the server without restarting it.
   • Use Gravatars.
+  • (Optionally) use a proper storage software instead of the users file.
 * More games.

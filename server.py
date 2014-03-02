@@ -11,22 +11,29 @@ import config
 # Set up the log
 # noinspection PyUnresolvedReferences
 import base.log
-
-from base import client
-
+import base.client
 
 logger = logging.getLogger(__name__)
 
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
+        """Return the client object for the current connection.
+
+        Normally we identify the client by a (secure) cookie, but in DEVTEST instances we
+        just append the client id to the URL so that several connections can be opened
+        simultaneously.
+
+        :return: Client object for the current connection.
+        :rtype : base.client.Client
+        """
         try:
             if config.DEVTEST:
-                id = self.request.path.split("/")[-1]
+                identifier = self.request.path.split("/")[-1]
             else:
-                id = self.get_secure_cookie("client_id")
-            return client.get(int(id))
-        except (client.ClientDoesNotExistError, ValueError, TypeError):
+                identifier = self.get_secure_cookie("client_id")
+            return base.client.get(int(identifier))
+        except (base.client.ClientDoesNotExistError, ValueError, TypeError):
             return None
 
     def redirect_if_logged_in(self):
@@ -76,7 +83,7 @@ class ClientRequestHandler(BaseHandler):
             self.current_user.notify_of_exception(e)
             raise
         finally:
-            client.send_all_messages()
+            base.client.send_all_messages()
 
 
 class ClientResponseHandler(BaseHandler):
@@ -94,7 +101,7 @@ class ClientResponseHandler(BaseHandler):
             self.current_user.notify_of_exception(e)
             raise
         finally:
-            client.send_all_messages()
+            base.client.send_all_messages()
 
 
 class StartHandler(BaseHandler):
@@ -104,7 +111,7 @@ class StartHandler(BaseHandler):
             if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != config.access_code:
                 self.render("access_code_form.html", wrong_code=False)
                 return
-        if config.DEVTEST and config.disable_stored_logins:
+        if config.disable_stored_logins:
             self.redirect("/login/local")
             return
         self.render("login.html", logged_in=bool(self.current_user), disable_stored_logins=config.disable_stored_logins)
@@ -141,7 +148,7 @@ class UnregisteredLoginHandler(BaseLoginHandler):
     """Logging in without registering."""
     def get(self):
         self.disconnect_existing_client()
-        c = client.Client()
+        c = base.client.Client()
         if config.DEVTEST and config.devtest_direct_login:
             c.move_to(config.GAMES[config.default_game]["lobby"])
         self.redirect_to_welcome(c)
@@ -158,11 +165,11 @@ class GoogleLoginHandler(BaseLoginHandler, tornado.auth.GoogleMixin):
         if self.get_argument("openid.mode", None):
             user = yield self.get_authenticated_user()
             self.disconnect_existing_client()
-            c = client.registration_handler.get_client(user["claimed_id"])
+            c = base.client.registration_handler.get_client(user["claimed_id"])
             try:
                 if not c.name:
                     c.name = user["name"]
-            except client.InvalidClientNameError:
+            except base.client.InvalidClientNameError:
                 pass
             self.redirect_to_welcome(c)
         else:
@@ -198,7 +205,7 @@ application = tornado.web.Application(
 
 application.listen(config.port)
 
-sweeper = tornado.ioloop.PeriodicCallback(client.remove_inactive, 60000)
+sweeper = tornado.ioloop.PeriodicCallback(base.client.remove_inactive, 60000)
 sweeper.start()
 
 logger.info("Starting the server.")
