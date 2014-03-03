@@ -33,9 +33,6 @@ template_path = os.path.join(os.path.dirname(__file__), "templates")
 # The folder where server log files are kept
 log_path = os.path.join(os.path.dirname(__file__), "logs")
 
-# The application log location
-main_log_file = os.path.join(log_path, 'server.log')
-
 # The folder where server game log files are kept
 game_log_path = os.path.join(os.path.dirname(__file__), "game_logs")
 

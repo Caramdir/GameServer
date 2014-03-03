@@ -1,9 +1,10 @@
 import time
+import html
+import logging
 
 from config import GAMES
 import config
 import base.client
-from base.log import main_log
 
 ALL = set()
 
@@ -12,10 +13,12 @@ class Location(base.client.RequestHandler):
     """Abstract superclass for locations where clients/players can be (lobbies and games are locations)."""
     def __init__(self, clients=set(), persistent=False, has_chat=True):
         """
+        Initialize a new location.
 
         :param clients: Initial clients in this location.
         :type clients: set
         :param persistent: If False, this location will be dereferenced when all clients leave.
+        :param has_chat: Whether this location has a chat.
         """
         super().__init__()
         self.clients = clients.copy()
@@ -34,16 +37,17 @@ class Location(base.client.RequestHandler):
     def leave(self, client, reason=None):
         """Remove a client from the location"""
         self.clients.remove(client)
-        if not (self.persistent or self.clients):
+        if not self.persistent and not self.clients:
             self._unlink()
 
     def _unlink(self):
-        """Remove this location from the list."""
+        """Remove this location from the list of all locations.."""
         assert len(self.clients) == 0, "Unlinking a non-empty location."
         ALL.remove(self)
 
     def handle_request(self, client, command, data):
-        """Implement RequestHandler interface.
+        """
+        Implement RequestHandler interface.
 
         Possible commands:
          * chat.message
@@ -56,9 +60,10 @@ class Location(base.client.RequestHandler):
                 cmd = {
                     "command": "chat.receive_message",
                     "client": client.html,
-                    "message": message,
+                    "message": html.escape(message),
                     "time": time.time()
                 }
+                logging.getLogger('chat').info("{}: {}".format(client.name, message))
                 for c in self.clients:
                     c.send_chat_message(cmd)
                 base.client.send_all_messages()
@@ -66,7 +71,8 @@ class Location(base.client.RequestHandler):
         return super().handle_request(client, command, data)
 
     def cheat(self, client, command):
-        """This is called in DEVTEST runs when a chat message starting with "cheat: " is received.
+        """
+        This is called in DEVTEST runs when a chat message starting with "cheat: " is received.
 
         Implementations (esp. games) may override this method.
 
@@ -84,6 +90,11 @@ class Location(base.client.RequestHandler):
 
 
 class WelcomeLocation(Location):
+    """
+    All users start here.
+
+    This location is used to select a name and the first game lobby.
+    """
     def __init__(self):
         super().__init__(persistent=True, has_chat=False)
 
@@ -101,7 +112,6 @@ class WelcomeLocation(Location):
         if command == "welcome.do_login":
             try:
                 client.name = data["name"]
-                main_log.info("Created client {}.".format(client.name))
                 client.move_to(GAMES[data["game"]]["lobby"])
             except base.client.InvalidClientNameError as e:
                 client.send_message({

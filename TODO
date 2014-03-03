@@ -1,6 +1,7 @@
 Current development
 ===================
 * Logins:
+  • Make a check_access_code decorator and use it on all login handlers.
   • Reconnect a registered user if already logged in.
   • Write a better start/login options page.
 * Proposals:
@@ -27,7 +28,6 @@ Mid-term
 * Features
   • Enable certain games only for certain clients.
   • Force-resign on inactivity.
-  • Log chat messages.
   • Location.leave() should take a "reason" argument.
   • Allow more OpenID providers.
   • Allow waking only the current player

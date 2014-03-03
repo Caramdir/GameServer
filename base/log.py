@@ -1,7 +1,9 @@
+import os
 import logging
 import logging.config
 
 import config
+
 
 log_config = {
     "version": 1,
@@ -10,13 +12,16 @@ log_config = {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
+        'chat': {
+            'format': '%(asctime)s %(message)s'
+        }
     },
     'handlers': {
         'file': {
             'formatter': 'standard',
             'level': 'DEBUG' if config.DEVTEST else "INFO",
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': config.main_log_file,
+            'filename': os.path.join(config.log_path, 'server.log'),
             'maxBytes': 1024*1024,
             'backupCount': 5,
         },
@@ -25,13 +30,39 @@ log_config = {
             'level': 'DEBUG' if config.DEVTEST else "INFO",
             'class': 'logging.StreamHandler',
         },
+        'chat': {
+            'formatter': 'chat',
+            'level': "INFO",
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(config.log_path, 'chat.log'),
+            'maxBytes': 1024*1024,
+            'backupCount': 5,
+        },
+        'access': {
+            'formatter': 'chat',
+            'level': "INFO",
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(config.log_path, 'access.log'),
+            'maxBytes': 1024*1024,
+            'backupCount': 5,
+        },
     },
     'loggers': {
         '': {
             'handlers': ['file'],
             'level': 'DEBUG' if config.DEVTEST else "INFO",
             'propagate': False
-        }
+        },
+        'chat': {
+            'handlers': ['chat'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'tornado.access': {
+            'handlers': ['access'],
+            'level': 'INFO',
+            'propagate': False
+        },
     }
 }
 

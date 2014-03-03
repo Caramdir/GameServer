@@ -351,7 +351,7 @@ class Client:
         if self._chat_enabled:
             [self.send_message(msg) for msg in self._chat_history]
 
-    def get_next_query_id(self):
+    def _get_next_query_id(self):
         id = self._next_query_id
         self._next_query_id += 1
         return id
@@ -364,10 +364,9 @@ class Client:
         :return: A future which will receive the response (which is always a dict)
         :rtype: Future
         """
-        # todo: The sending should be abstracted into an Executor subclass
         query = kwargs
         query["command"] = command
-        query["id"] = self.get_next_query_id()
+        query["id"] = self._get_next_query_id()
         future = Future()
         self._queries[query["id"]] = {"query": query, "future": future}
         self.send_message(query)
@@ -389,7 +388,7 @@ class Client:
         """
         if not params:
             params = {}
-        query["id"] = self.get_next_query_id()
+        query["id"] = self._get_next_query_id()
         self.sent_queries[query["id"]] = {"query": query, "callback": callback, "params": params}
         self.send_message(query)
         send_all_messages()
@@ -445,7 +444,7 @@ class NullClient():
         self.location = None
         self.last_activity = time.time()
         self.messages = MessageQueue()
-        self.ui = BasicUI(self)
+        self.ui = CoroutineUI(self)
 
     def quit(self, reason=""):
         pass

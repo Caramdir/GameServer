@@ -691,7 +691,7 @@ chat = function() {
 
 		// receive a chat message
 	    receive_message : function(json) {
-			var line = $("<span />", {text : ": " + json.message});
+			var line = $("<span />", {html : ": " + json.message});
 			line.prepend($("<span />", {
 						"class" : "chat_user",
 						text : json.client}));
