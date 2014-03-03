@@ -1,6 +1,5 @@
 import warnings
 import functools
-import threading
 import traceback
 import tornado.template
 import os
@@ -32,30 +31,6 @@ def trace(func):
         print("Call to {} from {}".format(func.__name__, traceback.extract_stack()[-2]))
         return func(*args, **kwargs)
     return new_func
-
-
-class Lockable():
-    """Makes and subclass act as a lock."""
-
-    def __init__(self):
-        self._lock = threading.RLock()
-
-    def acquire(self):
-        #print("Acquiring lock for {}".format(self.__class__))
-        #traceback.print_stack()
-        self._lock.acquire()
-        #print("Acquired lock for {}".format(self.__class__))
-
-    def release(self):
-        #print("Releasing lock for {}".format(self.__class__))
-        self._lock.release()
-
-    @deprecated
-    def __enter__(self):
-        self.acquire()
-
-    def __exit__(self, type, value, traceback):
-        self.release()
 
 
 def english_join_list(l):
