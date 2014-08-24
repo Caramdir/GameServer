@@ -1,5 +1,7 @@
 from tornado.gen import coroutine
 
+import base.client
+
 
 class BasicUI:
     """Some basic UI elements."""
@@ -73,5 +75,8 @@ class CoroutineUI():
             "leave_question": leave_question
         }
         result = yield self.client.query('choice', question=question, answers=answers, leave_question=leave_question)
-        # todo: Check that the result is valid.
+        try:
+            t = answers[result["value"]]
+        except KeyError:
+            raise base.client.ClientCommunicationError(self.client, result, "Invalid choice.")
         return result["value"]

@@ -3,16 +3,17 @@
 from collections import defaultdict, deque
 import copy
 import random
+import logging
 
-from base.log import main_log
 from base.tools import plural_s, english_join_list
-from base.client import RequestHandler
+import base.client
 from base.locations import Location
-from config import GAMES, DEVTEST
 import config
 
+logger = logging.getLogger(__name__)
 
-class BaseGameProposal(RequestHandler):
+
+class BaseGameProposal(base.client.RequestHandler):
     """Base class for game proposals."""
 
     def __init__(self, lobby, clients, options):
@@ -195,7 +196,7 @@ class InvalidGameOptionsError(GameProposalCreationError):
         return "Invalid option '{}': {}.".format(self.option, self.message)
 
 
-class AutoMatcher(RequestHandler):
+class AutoMatcher(base.client.RequestHandler):
     """The base class that handles automatch requests."""
     def __init__(self, lobby, proposal_class=AutomatchGameProposal):
         """Initialize.
@@ -214,8 +215,13 @@ class AutoMatcher(RequestHandler):
     def client_joins_lobby(self, client):
         """Triggered whenever a client joins the lobby."""
         self._send_init(client)
-        if DEVTEST and config.devtest_auto_automatch:
+        if config.DEVTEST and config.devtest_auto_automatch:
             self.enable(client, [])
+
+    def client_leaves_lobby(self, client):
+        """Triggered whenever a client leaves the lobby."""
+        # todo: implement
+        pass
 
     def _send_init(self, client):
         """Send the initialization command to [client]."""
@@ -288,7 +294,7 @@ class AutoMatcher(RequestHandler):
         return [choices]
 
     def handle_reconnect(self, client):
-        if not (DEVTEST and config.devtest_auto_automatch):
+        if not (config.DEVTEST and config.devtest_auto_automatch):
             self.disable(client)
         super().handle_reconnect(client)
         self._send_init(client)
@@ -325,7 +331,7 @@ class GameLobby(Location):
         self.proposals = defaultdict(deque)
 
     def join(self, client):
-        """Announce to everyone that the client joined and send him the init command.
+        """Announce to everyone that the client joined and send it the init command.
 
         :param client: The joining client.
         """
@@ -343,7 +349,7 @@ class GameLobby(Location):
             "clients": {c.id: c.html for c in self.clients},
             "min_players": self.min_players,
             "max_players": self.max_players,
-            "games": {game: GAMES[game]["name"] for game in GAMES},
+            "games": {game: config.GAMES[game]["name"] for game in config.GAMES},
             "this_game": self.game,
         })
 
@@ -352,6 +358,7 @@ class GameLobby(Location):
             for proposal in copy.copy(self.proposals[client]):
                 proposal.client_left_lobby(client)
             del self.proposals[client]
+        self.automatcher.client_leaves_lobby(client)
 
         super().leave(client, reason)
 
@@ -377,7 +384,11 @@ class GameLobby(Location):
             self.propose_game(client, data["players"], data["options"])
             return True
         elif command == "lobby.switch":
-            client.move_to(GAMES[data["to"]]["lobby"])
+            try:
+                new_lobby = config.GAMES[data["to"]]["lobby"]
+            except KeyError:
+                raise base.client.ClientCommunicationError(client, data, "Invalid game identifier {}.".format(data["to"]))
+            client.move_to(new_lobby)
             return True
 
         handled = super().handle_request(client, command, data)

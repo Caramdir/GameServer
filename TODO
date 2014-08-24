@@ -18,9 +18,7 @@ Bugs
 Mid-term
 ========
 * Improvements
-  • Split session and user ids.
   • Add general game information to the "about" button (rules, link to BGG and stores).
-  • Log the correct IP.
   • Minify JavaScript files.
   • Subset the cards font.
   • Coroutinify the code.
@@ -28,7 +26,6 @@ Mid-term
 * Features
   • Enable certain games only for certain clients.
   • Force-resign on inactivity.
-  • Location.leave() should take a "reason" argument.
   • Allow more OpenID providers.
   • Allow waking only the current player
 * UI

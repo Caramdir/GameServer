@@ -8,7 +8,7 @@ from concurrent.futures import Future
 from collections import deque
 
 import config
-from base.interface import BasicUI, CoroutineUI
+import base.interface
 from base.tools import deprecated
 
 logger = logging.getLogger(__name__)
@@ -178,8 +178,8 @@ class Client:
         self._queries = {}              # holds futures of the coroutine interface
 
         # todo: All UI should be via coroutines.
-        self.ui = BasicUI(self)
-        self.coroutine_ui = CoroutineUI(self)
+        self.ui = base.interface.BasicUI(self)
+        self.coroutine_ui = base.interface.CoroutineUI(self)
 
         self._chat_enabled = True
         self._chat_history = deque(maxlen=10)
@@ -444,7 +444,7 @@ class NullClient():
         self.location = None
         self.last_activity = time.time()
         self.messages = MessageQueue()
-        self.ui = CoroutineUI(self)
+        self.ui = base.interface.CoroutineUI(self)
 
     def quit(self, reason=""):
         pass
