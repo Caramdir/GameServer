@@ -7,18 +7,19 @@ import binascii
 #
 # Parse command line options
 #
-parser = argparse.ArgumentParser()
-parser.add_argument("--dev", dest="dev", action="store_true", default=False,
-                    help="Run with development options for easier testing.")
-parser.add_argument("--port", action="store", type=int, default=9999,
-                    help="Port on which the HTTP server listens for connections.")
-args = parser.parse_args()
-
-port = args.port
-DEVTEST = args.dev
-
-del parser
-del args
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--dev", dest="dev", action="store_true", default=False,
+#                     help="Run with development options for easier testing.")
+# parser.add_argument("--port", action="store", type=int, default=9999,
+#                     help="Port on which the HTTP server listens for connections.")
+# args = parser.parse_args()
+#
+# port = args.port
+# DEVTEST = args.dev
+#
+# del parser
+# del args
+port = 9999
 
 #
 # Further configuration options
@@ -70,16 +71,16 @@ GAMES = {}
 # Beware: The following imports will pull almost everything. Hence anything defined below will not
 # be available in most modules.
 
-from games import schnapsen
+#from games import schnapsen
 
-GAMES["schnapsen"] = schnapsen.INFO
+#GAMES["schnapsen"] = schnapsen.INFO
 
 # This game is selected by default in the registration page. Set to None if no default should be set.
-default_game = "schnapsen"
+#default_game = "schnapsen"
 
 #
 # Use a localconfig.py file to override setting without having to change this file.
 #
 
-if os.path.isfile("localconfig.py"):
-    import localconfig
+#if os.path.isfile("localconfig.py"):
+#    import localconfig
