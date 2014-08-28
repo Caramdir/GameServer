@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    pass
-#     def get_current_user(self):
+    def get_current_user(self):
+        return None
 #         """Return the client object for the current connection.
 #
 #         Normally we identify the client by a (secure) cookie, but in DEVTEST instances we
@@ -107,8 +107,14 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class StartHandler(BaseHandler):
-    """This is the first page a user sees. It will present them with various login options."""
+    """
+    This is the entry point to the application.
+
+    We redirect the user either to the login page or the game area.
+    """
+    @tornado.web.authenticated
     def get(self):
+        pass
         # if config.access_code:
         #     if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != config.access_code:
         #         self.render("access_code_form.html", wrong_code=False)
@@ -116,9 +122,22 @@ class StartHandler(BaseHandler):
         # if config.disable_stored_logins:
         #     self.redirect("/login/local")
         #     return
-        self.render("login.html", logged_in=bool(self.current_user), disable_stored_logins=config.disable_stored_logins)
-#
-#
+
+
+class LoginHandler(BaseHandler):
+    def get(self, auth_service=None):
+        self.render("login.html", disable_stored_logins=config.disable_stored_logins, error=None)
+
+    def post(self, auth_service=None):
+        name = self.get_body_argument("name", default="", strip=True)
+        if not name:
+            self.render("login.html",
+                        disable_stored_logins=config.disable_stored_logins,
+                        error="You must enter a name.")
+            return
+        # create a new client
+
+
 # class AccessCodeHandler(BaseHandler):
 #     """Checks whether a given access code was correct and then sets the cookie."""
 #     # todo: Also check the access code when going directly to /login/{local,google}
@@ -199,12 +218,12 @@ _application = tornado.web.Application(
 #         (r"/response.*", ClientResponseHandler),
         (r"/", StartHandler),
 #         (r"/set_access_code", AccessCodeHandler),
-#         (r"/login", StartHandler),
+        (r"/login(.*)", LoginHandler),
 #         (r"/login/local", UnregisteredLoginHandler),
 #         (r"/login/google", GoogleLoginHandler),
 #         (r"/quit.*", QuitHandler),
     ],
-#     login_url="/login",
+    login_url="/login",
     template_path=config.template_path,
 #     static_path=config.static_path,
     cookie_secret=config.cookie_secret,

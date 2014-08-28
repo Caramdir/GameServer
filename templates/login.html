@@ -7,16 +7,25 @@
 </head>
 <body>
 <div id="main">
-    {% if logged_in %}
-        You are already logged in (maybe in a different browser window).
-        <a href="/play">Go back to the playing area.</a>
-    {% end %}
-    <ul>
+    <!--<ul>
     {% if not disable_stored_logins %}
         <li><a href="/login/google">Log in with your Google account.</a></li>
     {% end %}
         <li><a href="/login/local">Continue without logging in.</a></li>
-    </ul>
+    </ul>-->
+    <p>
+        You can immediate start playing without needing to create an account first.
+        Just enter a name and click "start".
+    </p>
+    <form method="POST">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" placeholder="your name"/>
+        <br />
+        <input type="submit" value="Start!" id="start"/>
+    </form>
+    {% if error %}
+        <p class="error_message" >{{ error }}</p>
+    {% end %}
     <hr />
     <p>
         This is a proof-of-concept website.
