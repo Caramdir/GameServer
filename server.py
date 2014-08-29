@@ -11,7 +11,7 @@ import config
 # # Set up the log
 # # noinspection PyUnresolvedReferences
 # import base.log
-# import base.client
+import base.client
 # import base.locations
 #
 logger = logging.getLogger(__name__)
@@ -19,25 +19,24 @@ logger = logging.getLogger(__name__)
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return None
-#         """Return the client object for the current connection.
-#
-#         Normally we identify the client by a (secure) cookie, but in DEVTEST instances we
-#         just append the client id to the URL so that several connections can be opened
-#         simultaneously.
-#
-#         :return: Client object for the current connection.
-#         :rtype : base.client.Client
-#         """
-#         try:
+        """Return the client object for the current connection.
+
+        Normally we identify the client by a (secure) cookie, but in DEVTEST instances we
+        just append the client id to the URL so that several connections can be opened
+        simultaneously.
+
+        :return: Client object for the current connection.
+        :rtype : base.client.Client
+        """
+        try:
 #             if config.DEVTEST:
 #                 identifier = self.request.path.split("/")[-1]
 #             else:
-#                 identifier = self.get_secure_cookie("client_id")
-#             return base.client.get(int(identifier))
-#         except (base.client.ClientDoesNotExistError, ValueError, TypeError):
-#             return None
-#
+            identifier = self.get_secure_cookie("client_id")
+            return get_instance().clients[int(identifier)]
+        except (KeyError, ValueError, TypeError):
+            return None
+
 #     def redirect_if_logged_in(self):
 #         if self.current_user:
 #             self.redirect("/play")
@@ -110,11 +109,10 @@ class StartHandler(BaseHandler):
     """
     This is the entry point to the application.
 
-    We redirect the user either to the login page or the game area.
+    We either redirect to the login page or display the game area.
     """
     @tornado.web.authenticated
     def get(self):
-        pass
         # if config.access_code:
         #     if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != config.access_code:
         #         self.render("access_code_form.html", wrong_code=False)
@@ -122,6 +120,11 @@ class StartHandler(BaseHandler):
         # if config.disable_stored_logins:
         #     self.redirect("/login/local")
         #     return
+        self.render("client.html",
+                    client=self.current_user,
+                    #devtest=config.DEVTEST,
+                    devtest=False,
+                    )
 
 
 class LoginHandler(BaseHandler):
@@ -130,12 +133,26 @@ class LoginHandler(BaseHandler):
 
     def post(self, auth_service=None):
         name = self.get_body_argument("name", default="", strip=True)
+
         if not name:
             self.render("login.html",
                         disable_stored_logins=config.disable_stored_logins,
                         error="You must enter a name.")
             return
-        # create a new client
+
+        try:
+            client = get_instance().clients.new(name)
+        except base.client.DuplicateClientNameError:
+            self.render("login.html",
+                        disable_stored_logins=config.disable_stored_logins,
+                        error="There is already a player with this name.")
+            return
+
+#        if config.DEVTEST:
+#            self.redirect("/" + str(c.id))
+#        else:
+        self.set_secure_cookie("client_id", str(client.id))
+        self.redirect("/")
 
 
 # class AccessCodeHandler(BaseHandler):
@@ -212,11 +229,10 @@ class LoginHandler(BaseHandler):
 #
 _application = tornado.web.Application(
     [
-#         (r"/play.*", MainHandler),
 #         (r"/wait.*", WaitHandler),
 #         (r"/request.*", ClientRequestHandler),
 #         (r"/response.*", ClientResponseHandler),
-        (r"/", StartHandler),
+        (r"/[0-9]*", StartHandler),
 #         (r"/set_access_code", AccessCodeHandler),
         (r"/login(.*)", LoginHandler),
 #         (r"/login/local", UnregisteredLoginHandler),
@@ -233,9 +249,10 @@ _application.listen(config.port)
 
 
 class Server:
+    """Control the application server and store state information."""
     def __init__(self, tornado_app=None):
         self.started = False
-#         self.clients = {}
+        self.clients = base.client.ClientManager()
 #         self.locations = {}
 #
         if tornado_app is None:
@@ -257,10 +274,10 @@ class Server:
         tornado.ioloop.IOLoop.instance().stop()
 
     def reset(self):
-        pass
         if self.started:
             raise Exception("Cannot reset a running server.")
-#         self.clients = {}
+
+        self.clients = base.client.ClientManager()
 #         self.locations = {}
 
 
