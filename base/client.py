@@ -25,7 +25,12 @@ class ClientManager:
         self.clients = {}
         self._next_id = 1
 
-    def new(self, name):
+    def new(self, name, default_location=None):
+        name = str(name).strip()
+
+        if name == "":
+            raise EmptyNameError()
+
         for client in self.clients.values():
             if client.name == name:
                 raise DuplicateClientNameError(name)
@@ -33,7 +38,9 @@ class ClientManager:
         client = Client(self._next_id, name)
         self._next_id += 1
         self.clients[client.id] = client
-        client.move_to(server.get_instance().locations.lobby)
+
+        if default_location:
+            client.move_to(default_location)
 
         logger.info("New client '{}'.".format(client.name))
 
@@ -43,12 +50,24 @@ class ClientManager:
         return self.clients[item]
 
 
-class DuplicateClientNameError(Exception):
-    def __init__(self, name):
+class InvalidClientNameError(Exception):
+    """The chosen name is not allowed."""
+    def __init__(self, name, reason):
         self.name = name
+        self.reason = reason
 
     def __str__(self):
-        return "There is already a player called {}.".format(self.name)
+        return "{}".format(self.reason)
+
+
+class DuplicateClientNameError(InvalidClientNameError):
+    def __init__(self, name):
+        super().__init__(name, "There is already a player with this name.")
+
+
+class EmptyNameError(InvalidClientNameError):
+    def __init__(self):
+        super().__init__("", "The name is empty.")
 
 
 # class RegistrationHandler():
@@ -126,17 +145,6 @@ class ClientCommunicationError(Exception):
 
     def __str__(self):
         return "Received unexpected reply from client: " + self.message
-
-
-class InvalidClientNameError(Exception):
-    """The chosen name is not allowed."""
-    def __init__(self, client, name, reason):
-        self.client = client
-        self.name = name
-        self.reason = reason
-
-    def __str__(self):
-        return "{} [{}]".format(self.reason, self.name)
 
 
 class Client:

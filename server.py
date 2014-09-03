@@ -142,15 +142,14 @@ class LoginHandler(BaseHandler):
     def post(self, auth_service=None):
         name = self.get_body_argument("name", default="", strip=True)
 
-        if not name:
+        try:
+            client = get_instance().clients.new(name, get_instance().locations.lobby)
+        except base.client.EmptyNameError:
             self.render("login.html",
                         disable_stored_logins=config.disable_stored_logins,
                         error="You must enter a name.")
             return
-
-        try:
-            client = get_instance().clients.new(name)
-        except base.client.DuplicateClientNameError:
+        except base.client.InvalidClientNameError:
             self.render("login.html",
                         disable_stored_logins=config.disable_stored_logins,
                         error="There is already a player with this name.")
