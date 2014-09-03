@@ -1,4 +1,4 @@
-# import json
+import json
 import logging
 
 import tornado.ioloop
@@ -12,8 +12,8 @@ import config
 # # noinspection PyUnresolvedReferences
 # import base.log
 import base.client
-# import base.locations
-#
+import base.locations
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,56 +37,59 @@ class BaseHandler(tornado.web.RequestHandler):
         except (KeyError, ValueError, TypeError):
             return None
 
-#     def redirect_if_logged_in(self):
-#         if self.current_user:
-#             self.redirect("/play")
-#             return True
-#         return False
-#
-#
-# class MainHandler(BaseHandler):
-#     """Show the main interface."""
-#     @tornado.web.authenticated
-#     def get(self):
-#         self.render("client.html", client=self.current_user, devtest=config.DEVTEST)
-#
-#
-# class WaitHandler(BaseHandler):
-#     """The long polling URI where we wait for new messages."""
-#     @tornado.web.authenticated
-#     @tornado.web.asynchronous
-#     def get(self):
-#         self.current_user.messages.wait_for_messages(self.on_new_messages)
-#
-#     def on_new_messages(self, disconnect=False):
-#         if self.request.connection.stream.closed():
-#             return
-#         if disconnect:
-#             self.finish(json.dumps([{"command": "quit", "reason": "Connected in different window."}]).encode())
-#             return
-#         self.set_header("Content-Type", "application/json")
-#         msgs = self.current_user.messages.get_all()
-#         self.finish(json.dumps(msgs).encode())
-#
-#
-# class ClientRequestHandler(BaseHandler):
-#     """The client sends a request."""
-#     @tornado.web.authenticated
-#     def post(self):
-#         try:
-#             request = json.loads(self.request.body.decode())
-#             if logger.isEnabledFor(logging.DEBUG):
-#                 logger.debug("Got request: {}.".format(request))
-#             self.current_user.handle_request(request)
-#             self.set_status(202)
-#             self.write("OK")
-#         except Exception as e:
-#             self.current_user.notify_of_exception(e)
-#             raise
-#         finally:
-#             base.client.send_all_messages()
-#
-#
+
+class PollHandler(BaseHandler):
+    """The long polling URI where we wait for new messages."""
+    @tornado.web.authenticated
+    @tornado.web.asynchronous
+    def get(self):
+        self.set_header("Content-Type", "application/json")
+
+        session_id = int(self.get_query_argument("session_id"))
+        if session_id < self.current_user.session_id:
+            # This shouldn't happen in general, but might be possible
+            # if we are very unlucky with timing.
+            self.disconnect_old_connection()
+            return
+
+        self.current_user.messages.wait_for_messages(self)
+
+    def send_messages(self):
+        """Send all waiting messages."""
+        if self.request.connection.stream.closed():
+            return
+        msgs = self.current_user.messages.get_all()
+        self.finish(json.dumps(msgs).encode())
+
+    def disconnect_old_connection(self):
+        """This is an old connection. Disconnect and show an error message to the user."""
+        if self.request.connection.stream.closed():
+            return
+        self.finish(json.dumps([{"command": "quit", "reason": "Connected in different window."}]).encode())
+
+
+class ClientRequestHandler(BaseHandler):
+    """The client sends a request."""
+    @tornado.web.authenticated
+    def post(self):
+
+        session_id = int(self.get_query_argument("session_id"))
+        if session_id != self.current_user.session_id:
+            self.send_error(409)
+            return
+
+        try:
+            request = json.loads(self.request.body.decode())
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Got request: {}.".format(request))
+            self.current_user.handle_request(request)
+            self.set_status(202)
+            self.write("OK")
+        except Exception as e:
+            self.current_user.notify_of_exception(e)
+            raise
+
+
 # class ClientResponseHandler(BaseHandler):
 #     """The client sends a response."""
 #     @tornado.web.authenticated
@@ -113,6 +116,7 @@ class StartHandler(BaseHandler):
     """
     @tornado.web.authenticated
     def get(self):
+        # todo: Move this code to the correct place.
         # if config.access_code:
         #     if not self.get_secure_cookie("access_code") or self.get_secure_cookie("access_code").decode() != config.access_code:
         #         self.render("access_code_form.html", wrong_code=False)
@@ -120,6 +124,10 @@ class StartHandler(BaseHandler):
         # if config.disable_stored_logins:
         #     self.redirect("/login/local")
         #     return
+
+        self.current_user.session_id += 1
+        self.current_user.messages.client_reconnected()
+
         self.render("client.html",
                     client=self.current_user,
                     #devtest=config.DEVTEST,
@@ -229,8 +237,8 @@ class LoginHandler(BaseHandler):
 #
 _application = tornado.web.Application(
     [
-#         (r"/wait.*", WaitHandler),
-#         (r"/request.*", ClientRequestHandler),
+        (r"/poll.*", PollHandler),
+        (r"/request.*", ClientRequestHandler),
 #         (r"/response.*", ClientResponseHandler),
         (r"/[0-9]*", StartHandler),
 #         (r"/set_access_code", AccessCodeHandler),
@@ -241,7 +249,7 @@ _application = tornado.web.Application(
     ],
     login_url="/login",
     template_path=config.template_path,
-#     static_path=config.static_path,
+    static_path=config.static_path,
     cookie_secret=config.cookie_secret,
     xheaders=True,
 )
@@ -250,19 +258,18 @@ _application.listen(config.port)
 
 class Server:
     """Control the application server and store state information."""
-    def __init__(self, tornado_app=None):
+    def __init__(self):
         self.started = False
-        self.clients = base.client.ClientManager()
-#         self.locations = {}
-#
-        if tornado_app is None:
-            tornado_app = _application
-        self.app = tornado_app
-#
+        self.clients = None
+        self.locations = None
+
 #         self.sweeper = tornado.ioloop.PeriodicCallback(base.client.remove_inactive, 60000)
 
     def start(self):
         logger.debug("Starting the server.")
+        self.clients = base.client.ClientManager()
+        self.locations = base.locations.LocationManager()
+        self.locations.create_default_locations()
         self.started = True
 #         self.sweeper.start()
         tornado.ioloop.IOLoop.instance().start()
@@ -277,8 +284,7 @@ class Server:
         if self.started:
             raise Exception("Cannot reset a running server.")
 
-        self.clients = base.client.ClientManager()
-#         self.locations = {}
+        # todo: create an new ioloop instance
 
 
 _instance = None

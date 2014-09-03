@@ -5,10 +5,12 @@
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
         <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css" />
+        <script>
+            var session_id = {{ client.session_id }};
+        </script>
 		<script src="/static/client.js"></script>
 		<link rel="stylesheet" type="text/css" href="/static/client.css" />
 		<title>Welcome</title>
-        <!-- todo: make use of client and session ids -->
 	</head>
 	<body>
 		<div id="main">

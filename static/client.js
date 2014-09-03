@@ -38,7 +38,7 @@ $(document).ready(function() {
 function set_client_info(data) {
     client_id = data.id;
     client_name = data.name;
-    loader.set_cache_control(data.cache_control)
+    loader.set_cache_control(data.cache_control);
     devtest = data.devtest;
     admin = data["admin"];
     if (admin) {
@@ -103,7 +103,7 @@ var waiter = (function() {
     var connect = function() {
         if (request) return;
         request = $.ajax({
-            url: "/wait/"+ client_id,
+            url: "/poll"+ (devtest? "/" + client_id : "") + "?session_id=" + session_id,
             dataType: "json",
             success: waitcomplete,
             cache: false,
@@ -135,7 +135,7 @@ var waiter = (function() {
 function send_request(data) {
 	$.ajax({
 		type : "POST",
-		url : "/request/" + client_id,
+		url : "/request"+ (devtest? "/" + client_id : "") + "?session_id=" + session_id,
 		data : JSON.stringify(data)
 	});
 }
@@ -388,6 +388,102 @@ welcome = function () {
  */
 
 lobby = function () {
+    var layout = [];
+
+	var create_player_cell = function(id, name) {
+		var line = $("<span/>");
+        line.append($("<label />", {
+            "id" : "client_" + id,
+            text : name,
+        }));
+		return line;
+	};
+
+    return {
+        init: function (params) {
+            ui.title.set("Welcome");
+            $("#main").removeClass().addClass("lobby");
+            cancel_interactions = default_cancel_interactions;
+
+            loader.html('/static/lobby.html', $("#main"), function () {
+                $("#lobby_info_user").html(client_name);
+//                lobby.populate_switcher(json["games"])
+//                $("#about_button").on("click", on_about_click);
+                $("#about_div").hide();
+
+//                if (admin) {
+//                    $("#lobby_switcher").append($("<button/>", {
+//                        text: "admin",
+//                        click: function () {
+//                            send_request({"command": "go_to_admin"});
+//                        }
+//                    }))
+//                }
+
+                layout = [];
+                for (var p in params['clients']) {
+                    if (!params['clients'].hasOwnProperty(p)) continue;
+                    if (p != client_id) {
+                        lobby.client_joins({client_id: p, client_name: params['clients'][p]});
+                    }
+                }
+
+                on_resize = lobby.set_size;
+                $(window).resize();
+            });
+        },
+
+        client_joins: function (params) {
+            var added = false;
+            var row, col;
+
+            for (row = 0; row < layout.length; row++) {
+                for (col = 0; col < layout[row].length; col++) {
+                    if (layout[row][col] == null) {
+                        layout[row][col] = params.client_id;
+                        $("#lobby_player_table_" + row + "_" + col).append(create_player_cell(params.client_id, params.client_name));
+                        added = true;
+                        break;
+                    }
+                }
+                if (added) break;
+            }
+
+            if (!added) {
+                layout.push([null, null, null]);
+                row = layout.length - 1;
+                var tr = $("<tr />", {id: "lobby_player_table_" + row});
+                for (col = 0; col < layout[row].length; col++) {
+                    tr.append($("<td />", {id: "lobby_player_table_" + row + "_" + col}));
+                }
+                $("#lobby_player_table").append(tr);
+                $("#lobby_player_table_" + row + "_0").append(create_player_cell(params.client_id, params.client_name));
+                layout[row][0] = params.client_id;
+            }
+        },
+
+        client_leaves: function (params) {
+            var found = false;
+            for (var row = 0; row < layout.length; row++) {
+                for (var col = 0; col < layout[row].length; col++) {
+                    if (layout[row][col] == params.client_id) {
+                        $("#lobby_player_table_" + row + "_" + col).empty();
+                        layout[row][col] = null;
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        },
+
+        set_size: function () {
+        },
+    };
+}();
+
+
+gamelobby = function () {
 	var min_players;
 	var max_players;
     var current_game;
@@ -568,7 +664,7 @@ lobby = function () {
 
 }();
 
-lobby.automatch = function() {
+gamelobby.automatch = function() {
 
     var automatch_clicked = function() {
         if ($("#cb_automatch").prop("checked")) {

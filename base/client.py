@@ -1,15 +1,18 @@
 """A client is a logged in user."""
 
 import html
-# import time
-# import pprint
+import time
+import pprint
 import logging
 # import json
 # import os
 # from concurrent.futures import Future
 # from collections import deque
-#
+
+import tornado.ioloop
+
 # import config
+import server
 # import base.interface
 # from base.tools import deprecated
 #
@@ -30,6 +33,7 @@ class ClientManager:
         client = Client(self._next_id, name)
         self._next_id += 1
         self.clients[client.id] = client
+        client.move_to(server.get_instance().locations.lobby)
 
         logger.info("New client '{}'.".format(client.name))
 
@@ -47,14 +51,6 @@ class DuplicateClientNameError(Exception):
         return "There is already a player called {}.".format(self.name)
 
 
-# def get(id):
-#     """Return the client with the given id."""
-#     c = BY_ID.get(id)
-#     if not c:
-#         raise ClientDoesNotExistError(id)
-#     return c
-#
-#
 # class RegistrationHandler():
 #     def __init__(self):
 #         self.registered_clients = {}
@@ -118,30 +114,20 @@ class DuplicateClientNameError(Exception):
 #     for c in k:
 #         c.quit("You were inactive for more than {} minutes.".format(int(timeout/60)))
 #     send_all_messages()
-#
-#
-# class ClientDoesNotExistError(Exception):
-#     """Exception that is raised when trying to access a non-existing client."""
-#
-#     def __init__(self, id):
-#         self.id = id
-#
-#     def __str__(self):
-#         return "The client with id {} does not exist.".format(self.id)
-#
-#
-# class ClientCommunicationError(Exception):
-#     """The client reply was not as expected."""
-#
-#     def __init__(self, client, reply, message):
-#         self.client = client
-#         self.reply = reply
-#         self.message = message
-#
-#     def __str__(self):
-#         return "Received unexpected reply from client: " + self.message
-#
-#
+
+
+class ClientCommunicationError(Exception):
+    """The client reply was not as expected."""
+
+    def __init__(self, client, reply, message):
+        self.client = client
+        self.reply = reply
+        self.message = message
+
+    def __str__(self):
+        return "Received unexpected reply from client: " + self.message
+
+
 class InvalidClientNameError(Exception):
     """The chosen name is not allowed."""
     def __init__(self, client, name, reason):
@@ -151,23 +137,6 @@ class InvalidClientNameError(Exception):
 
     def __str__(self):
         return "{} [{}]".format(self.reason, self.name)
-#
-#
-# class RequestHandler:
-#     """Abstract base class for classes that can handle client requests."""
-#     def handle_request(self, client, command, parameters):
-#         """Handle a general request from the client.
-#
-#         :return: Return True if the request was handled and False otherwise.
-#         :rtype : bool
-#         """
-#         return False
-#
-#     def handle_reconnect(self, client):
-#         """Handle a reconnection request from the client.
-#
-#         Implementations should send the current state of the UI."""
-#         pass
 
 
 class Client:
@@ -182,14 +151,16 @@ class Client:
         self.name = name
         self.html_name = html.escape(name)
 
-#         self.is_admin = False
+        self.session_id = 0
+
+        self.is_admin = False
 #         self.is_registered = False
 #         self._registration_identifier = None
 #
 #
-#         self.last_activity = time.time()
-#
-#         self.messages = MessageQueue()
+        self.last_activity = time.time()
+
+        self.messages = MessageQueue()
 #         self._next_query_id = 1
 #         self.sent_queries = {}          # todo: remove when send_query is removed
 #         self._queries = {}              # holds futures of the coroutine interface
@@ -201,9 +172,7 @@ class Client:
 #         self._chat_enabled = True
 #         self._chat_history = deque(maxlen=10)
 #
-#         self.location = None
-#
-#         BY_ID[self.id] = self
+        self.location = None
 #
 #         # automatically set a user name in DEVTEST instances
 #         if config.DEVTEST:
@@ -266,60 +235,59 @@ class Client:
 #         self.send_message({"command": "quit", "reason": reason})
 #         del BY_ID[self.id]
 #
-#     def move_to(self, location):
-#         """Move the client to a new location."""
-#         if self.location:
-#             self.location.leave(self)
-#         self.location = location
-#         if location:
-#             location.join(self)
-#
-#     def touch(self):
-#         """Sets last_activity to now."""
-#         self.last_activity = time.time()
-#
-#     def handle_request(self, data):
-#         """Handle a request from a client, usually by passing it to the location.
-#
-#         The location has to implement the RequestHandler interface.
-#
-#         The request "current_state" is used for reconnecting clients to request all the info that they lost (e.g. on a
-#         page refresh).
-#
-#         Possible commands:
-#         * current_state
-#         * go_to_admin
-#         """
-#         self.touch()
-#
-#         try:
-#             command = data["command"]
-#         except KeyError:
-#             raise ClientCommunicationError("Request without a command.")
-#
-#         if command == "current_state":
-#             self.messages.clear()       # We are supposed to resend everything, so remove old messages.
-#             self.messages.client_reconnected()
-#             msg = {
-#                 "command": "set_client_info",
-#                 "id": self.id,
-#                 "name": self.html,
-#                 "devtest": config.DEVTEST,
-#                 "admin": self.is_admin,
-#             }
+    def move_to(self, location):
+        """Move the client to a new location."""
+        if self.location:
+            self.location.leave(self)
+        self.location = location
+        if location:
+            location.join(self)
+
+    def touch(self):
+        """Sets last_activity to now."""
+        self.last_activity = time.time()
+
+    def handle_request(self, data):
+        """Handle a request from a client, usually by passing it to the location.
+
+        The request "current_state" is used for reconnecting clients to request all the info that they lost (e.g. on a
+        page refresh).
+
+        Possible commands:
+        * current_state
+        * go_to_admin
+        """
+        self.touch()
+
+        try:
+            command = data["command"]
+        except KeyError:
+            raise ClientCommunicationError("Request without a command.")
+
+        if command == "current_state":
+            self.messages.clear()       # We are supposed to resend everything, so remove old messages.
+            self.messages.client_reconnected()
+            msg = {
+                "command": "set_client_info",
+                "id": self.id,
+                "name": str(self),
+#                "devtest": config.DEVTEST,
+                "devtest": False,
+                "admin": self.is_admin,
+            }
 #             if not config.DEVTEST:
 #                 msg["cache_control"] = config.cache_control
-#             self.send_message(msg)
+            self.send_message(msg)
 #             if self._chat_enabled:
 #                 self.send_message({"command": "chat.enable"})
 #                 self._resend_chat_messages()
-#             if self.location:
-#                 self.location.handle_reconnect(self)
+            if self.location:
+                self.location.handle_reconnect(self)
 #             for id in self.sent_queries:
 #                 self.send_message(self.sent_queries[id]["query"])
 #             for id in self._queries:
 #                 self.send_message(self._queries[id]["query"])
-#             return
+            return
 #
 #         if command == "go_to_admin":
 #             import base.admin
@@ -328,18 +296,18 @@ class Client:
 #             #todo: log improper admin access.
 #             return
 #
-#         if not self.location.handle_request(self, command, data):
-#             raise UnhandledClientRequestError(data["command"])
-#
-#     def send_message(self, item):
-#         """Send a message or command to the client.
-#
-#         :type item: dict
-#         """
-#         if logger.isEnabledFor(logging.DEBUG):
-#             logger.debug("Sending the following message to {}:\n{}".format(self.html, pprint.pformat(item)))
-#         self.messages.put(item)
-#
+        if not self.location.handle_request(self, command, data):
+            raise UnhandledClientRequestError(data["command"])
+
+    def send_message(self, item):
+        """Send a message or command to the client.
+
+        :type item: dict
+        """
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Sending the following message to {}:\n{}".format(self.name, pprint.pformat(item)))
+        self.messages.put(item)
+
 #     def send_chat_message(self, item):
 #         """Send a chat message to the client.
 #
@@ -492,63 +460,55 @@ class Client:
 #
 #     def notify_of_exception(self, e):
 #         pass
-#
-#
-# class UnhandledClientRequestError(Exception):
-#     """An exception that is raised when the client sends a request that could not be handled."""
-#     def __init__(self, command):
-#         self.command = command
-#
-#     def __str__(self):
-#         return 'Client request "{}" could not be handled.'.format(self.command)
-#
-#
-# waiters_to_notify = set()
-#
-#
-# def send_all_messages():
-#     global waiters_to_notify
-#     for waiter in waiters_to_notify:
-#         waiter()
-#     waiters_to_notify = set()
-#
-#
-# class MessageQueue():
-#     """A queue that stores all messages that are waiting to be send to the client."""
-#     def __init__(self):
-#         self.messages = []
-#         self.waiter = None
-#
-#     def wait_for_messages(self, callback):
-#         if self.waiter:
-#             self.client_reconnected()
-#         if self.messages:
-#             callback()
-#         else:
-#             self.waiter = callback
-#
-#     def put(self, message):
-#         """Add a message to the end of the queue.
-#
-#         :type message: dict
-#         """
-#         self.messages.append(message)
-#         if self.waiter:
-#             waiters_to_notify.add(self.waiter)
-#             self.waiter = None
-#
-#     def get_all(self):
-#         """Returns a list of all messages and empties the queue."""
-#         msgs = list(self.messages)
-#         self.messages.clear()
-#         return msgs
-#
-#     def clear(self):
-#         """Remove all messages from the queue."""
-#         self.messages.clear()
-#
-#     def client_reconnected(self):
-#         """Handle a client reconnect."""
-#         if self.waiter:
-#             self.waiter(disconnect=True)
-#             self.waiter = None
+
+
+class UnhandledClientRequestError(Exception):
+    """An exception that is raised when the client sends a request that could not be handled."""
+    def __init__(self, command):
+        self.command = command
+
+    def __str__(self):
+        return 'Client request "{}" could not be handled.'.format(self.command)
+
+
+class MessageQueue():
+    """A queue that stores all messages that are waiting to be send to the client."""
+    def __init__(self):
+        self.messages = []
+        self._poll_request_handler = None
+
+    def wait_for_messages(self, poll_request_handler):
+        if self._poll_request_handler:
+            logger.error("PollHandler connected twice. This should not happen.")
+            self._poll_request_handler = None
+
+        if self.messages:
+            poll_request_handler.send_messages()
+        else:
+            self._poll_request_handler = poll_request_handler
+
+    def put(self, message):
+        """Add a message to the end of the queue.
+
+        :type message: dict
+        """
+        self.messages.append(message)
+        if self._poll_request_handler:
+            tornado.ioloop.IOLoop.instance().add_callback(self._poll_request_handler.send_messages)
+            self._poll_request_handler = None
+
+    def get_all(self):
+        """Returns a list of all messages and empties the queue."""
+        msgs = list(self.messages)
+        self.messages.clear()
+        return msgs
+
+    def clear(self):
+        """Remove all messages from the queue."""
+        self.messages.clear()
+
+    def client_reconnected(self):
+        """Handle a client reconnect."""
+        if self._poll_request_handler:
+            self._poll_request_handler.disconnect_old_connection()
+            self._poll_request_handler = None
