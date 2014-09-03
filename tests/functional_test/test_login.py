@@ -7,7 +7,10 @@ import config
 
 class LoginTest(LiveTestCase):
     def setUp(self):
-        self.browser = webdriver.Firefox()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference("extensions.autoDisableScopes", 15)
+        profile.set_preference("extensions.enabledScopes", 1)
+        self.browser = webdriver.Firefox(profile)
         self.browser.implicitly_wait(3)
 
     def tearDown(self):
