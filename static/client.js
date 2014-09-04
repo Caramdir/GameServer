@@ -29,7 +29,6 @@ $(document).ready(function() {
 
     chat.init();
 
-	send_request({command : "current_state"});
 	waiter.connect();
 
 	$(window).on("resize", function() { chat.set_size(); if (on_resize) {on_resize();}});
@@ -50,7 +49,8 @@ function quit(data) {
     if (data["reason"]) {
         alert("You have been disconnected: " + data["reason"]);
     }
-    window.location.href = "/";
+// Todo: don't go to /, as this will now lead to reconnection.
+//    window.location.href = "/";
 }
 
 var command_loop = (function() {

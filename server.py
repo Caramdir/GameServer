@@ -46,7 +46,7 @@ class PollHandler(BaseHandler):
         self.set_header("Content-Type", "application/json")
 
         session_id = int(self.get_query_argument("session_id"))
-        if session_id < self.current_user.session_id:
+        if session_id != self.current_user.session_id:
             # This shouldn't happen in general, but might be possible
             # if we are very unlucky with timing.
             self.disconnect_old_connection()
@@ -125,8 +125,7 @@ class StartHandler(BaseHandler):
         #     self.redirect("/login/local")
         #     return
 
-        self.current_user.session_id += 1
-        self.current_user.messages.client_reconnected()
+        self.current_user.handle_new_connection()
 
         self.render("client.html",
                     client=self.current_user,

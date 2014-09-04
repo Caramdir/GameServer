@@ -90,15 +90,18 @@ class ClientTestCase(TestCase):
 
         c.messages.put.assert_called_once_with(msg)
 
-    def test_reconnect(self):
+    def test_connect(self):
         c = base.client.Client(0, "foo")
         c.location = Mock()
         c.messages = Mock()
+        sid = c.session_id
 
-        c.handle_request({"command": "current_state"})
+        c.handle_new_connection()
 
+        self.assertTrue(c.messages.client_reconnected.called)
         self.assertTrue(c.messages.put.called)
         c.location.handle_reconnect.assert_called_once_with(c)
+        self.assertGreater(c.session_id, sid)
 
 
 class MessageQueueTestCase(AsyncTestCase):
@@ -109,18 +112,23 @@ class MessageQueueTestCase(AsyncTestCase):
     def test_connect_twice(self):
         ph1 = Mock()
         self.mq.wait_for_messages(ph1)
-
         ph2 = Mock()
-        self.mq.wait_for_messages(ph2)
 
-        ph1.disconnect_old_connection.assert_called_once()
+        with self.assertLogs(level="ERROR"):
+            self.mq.wait_for_messages(ph2)
 
     def test_explicit_reconnect(self):
-        ph1 = Mock()
-        self.mq.wait_for_messages(ph1)
+        ph = Mock()
+        self.mq.wait_for_messages(ph)
         self.mq.client_reconnected()
 
-        ph1.disconnect_old_connection.assert_called_once()
+        ph.disconnect_old_connection.assert_called_once()
+        self.assertIsNone(self.mq._poll_request_handler)
+
+        self.mq.put({"foo": "bar"})
+        self.mq.client_reconnected()
+
+        self.assertFalse(self.mq.get_all())
 
     def test_store_messages(self):
         self.mq.put({"foo": "bar"})

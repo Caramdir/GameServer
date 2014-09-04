@@ -255,14 +255,38 @@ class Client:
         """Sets last_activity to now."""
         self.last_activity = time.time()
 
+    def handle_new_connection(self):
+        self.touch()
+
+        self.session_id += 1
+        self.messages.client_reconnected()
+
+        msg = {
+            "command": "set_client_info",
+            "id": self.id,
+            "name": str(self),
+#            "devtest": config.DEVTEST,
+            "devtest": False,
+            "admin": self.is_admin,
+        }
+#         if not config.DEVTEST:
+#             msg["cache_control"] = config.cache_control
+        self.send_message(msg)
+#         if self._chat_enabled:
+#             self.send_message({"command": "chat.enable"})
+#             self._resend_chat_messages()
+        if self.location:
+            self.location.handle_reconnect(self)
+#         for id in self.sent_queries:
+#             self.send_message(self.sent_queries[id]["query"])
+#         for id in self._queries:
+#             self.send_message(self._queries[id]["query"])
+        return
+
     def handle_request(self, data):
         """Handle a request from a client, usually by passing it to the location.
 
-        The request "current_state" is used for reconnecting clients to request all the info that they lost (e.g. on a
-        page refresh).
-
         Possible commands:
-        * current_state
         * go_to_admin
         """
         self.touch()
@@ -271,31 +295,6 @@ class Client:
             command = data["command"]
         except KeyError:
             raise ClientCommunicationError("Request without a command.")
-
-        if command == "current_state":
-            self.messages.clear()       # We are supposed to resend everything, so remove old messages.
-            self.messages.client_reconnected()
-            msg = {
-                "command": "set_client_info",
-                "id": self.id,
-                "name": str(self),
-#                "devtest": config.DEVTEST,
-                "devtest": False,
-                "admin": self.is_admin,
-            }
-#             if not config.DEVTEST:
-#                 msg["cache_control"] = config.cache_control
-            self.send_message(msg)
-#             if self._chat_enabled:
-#                 self.send_message({"command": "chat.enable"})
-#                 self._resend_chat_messages()
-            if self.location:
-                self.location.handle_reconnect(self)
-#             for id in self.sent_queries:
-#                 self.send_message(self.sent_queries[id]["query"])
-#             for id in self._queries:
-#                 self.send_message(self._queries[id]["query"])
-            return
 #
 #         if command == "go_to_admin":
 #             import base.admin
@@ -517,6 +516,7 @@ class MessageQueue():
 
     def client_reconnected(self):
         """Handle a client reconnect."""
+        self.clear()
         if self._poll_request_handler:
             self._poll_request_handler.disconnect_old_connection()
             self._poll_request_handler = None
