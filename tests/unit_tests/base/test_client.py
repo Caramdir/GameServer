@@ -52,6 +52,55 @@ class ClientManagerTestCase(TestCase):
         self.assertEqual(c.location, loc)
 
 
+class ClientTestCase(TestCase):
+    def test_id(self):
+        c = base.client.Client(123, "bar")
+
+        self.assertEqual(c.id, 123)
+
+    def test_name(self):
+        c = base.client.Client(0, "f<o")
+
+        self.assertEqual(c.name, "f<o")
+        self.assertEqual(c.html_name, "f&lt;o")
+        self.assertEqual(str(c), "f&lt;o")
+
+    def test_move_to(self):
+        c = base.client.Client(0, "foo")
+        loc1 = Mock()
+        loc2 = Mock()
+
+        c.move_to(loc1)
+
+        self.assertEqual(c.location, loc1)
+        loc1.join.assert_called_once_with(c)
+
+        c.move_to(loc2)
+
+        self.assertEqual(c.location, loc2)
+        loc1.leave.assert_called_once_with(c)
+        loc2.join.assert_called_once_with(c)
+
+    def test_send_message(self):
+        c = base.client.Client(0, "foo")
+        c.messages = Mock()
+
+        msg = {"foo": "bar"}
+        c.send_message(msg)
+
+        c.messages.put.assert_called_once_with(msg)
+
+    def test_reconnect(self):
+        c = base.client.Client(0, "foo")
+        c.location = Mock()
+        c.messages = Mock()
+
+        c.handle_request({"command": "current_state"})
+
+        self.assertTrue(c.messages.put.called)
+        c.location.handle_reconnect.assert_called_once_with(c)
+
+
 class MessageQueueTestCase(AsyncTestCase):
     def setUp(self):
         super().setUp()
