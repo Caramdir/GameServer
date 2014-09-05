@@ -1,5 +1,5 @@
-# import time
-# import html
+import time
+import html
 import logging
 #
 # from config import GAMES
@@ -47,10 +47,18 @@ class Location:
     def join(self, client):
         """Add a client to the location."""
         self.clients.add(client)
-#        if self.has_chat:
-#            client.enable_chat()
-#        else:
-#            client.disable_chat()
+        self.send_init(client)
+
+    def send_init(self, client):
+        """
+        Send the location initialization commands to the client.
+
+        Overriding implementations always have to call super().send_init().
+        """
+        if self.has_chat:
+            client.send_message({"command": "chat.enable"})
+        else:
+            client.send_message({"command": "chat.disable"})
 
     def leave(self, client, reason=None):
         """Remove a client from the location"""
@@ -64,35 +72,37 @@ class Location:
         server.get_instance().locations.remove(self)
 
     def handle_request(self, client, command, data):
-#         """
-#         Implement RequestHandler interface.
-#
-#         Possible commands:
-#          * chat.message
-#         """
-#         if command == "chat.message":
-#             message = data["message"].strip()
-#             if message:
+        """
+        Implement RequestHandler interface.
+
+        Possible commands:
+         * chat.message: Client writes a chat message. We forward it to everyone.
+            The only parameter is "message".
+        """
+        if command == "chat.message":
+            if not self.has_chat:
+                return False
+            message = data["message"].strip()
+            if message:
 #                 if config.DEVTEST and data["message"].startswith("cheat: "):
 #                     self.cheat(self, data["message"][7:])
-#                 cmd = {
-#                     "command": "chat.receive_message",
-#                     "client": client.html,
-#                     "message": html.escape(message),
-#                     "time": time.time()
-#                 }
-#                 logging.getLogger('chat').info("{}: {}".format(client.name, message))
-#                 for c in self.clients:
-#                     c.send_chat_message(cmd)
-#                 base.client.send_all_messages()
-#             return True
+                cmd = {
+                    "command": "chat.receive_message",
+                    "sender": str(client),
+                    "message": html.escape(message),
+                    "time": time.time()
+                }
+                logging.getLogger('chat').info("{}: {}".format(client.name, message))
+                for c in self.clients:
+                    c.send_chat_message(cmd)
+            return True
         return False
 
     def handle_reconnect(self, client):
         """
         A client reconnected. Send everything it needs to know to rebuild the UI.
         """
-        pass
+        self.send_init(client)
 
 #     def cheat(self, client, command):
 #         """
@@ -126,13 +136,10 @@ class Lobby(Location):
         for c in self.clients:
             c.send_message(d)
         super().join(client)
-        self._send_init(client)
 
-    def handle_reconnect(self, client):
-        self._send_init(client)
-
-    def _send_init(self, client):
+    def send_init(self, client):
         """Send the setup command to a client."""
+        super().send_init(client)
         client.send_message({
             "command": "lobby.init",
             "clients": {c.id: str(c) for c in self.clients},

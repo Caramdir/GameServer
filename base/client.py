@@ -7,7 +7,7 @@ import logging
 # import json
 # import os
 # from concurrent.futures import Future
-# from collections import deque
+from collections import deque
 
 import tornado.ioloop
 
@@ -176,10 +176,9 @@ class Client:
 #         # todo: All UI should be via coroutines.
 #         self.ui = base.interface.BasicUI(self)
 #         self.coroutine_ui = base.interface.CoroutineUI(self)
-#
-#         self._chat_enabled = True
-#         self._chat_history = deque(maxlen=10)
-#
+
+        self._chat_history = deque(maxlen=10)
+
         self.location = None
 #
 #         # automatically set a user name in DEVTEST instances
@@ -272,11 +271,12 @@ class Client:
 #         if not config.DEVTEST:
 #             msg["cache_control"] = config.cache_control
         self.send_message(msg)
-#         if self._chat_enabled:
-#             self.send_message({"command": "chat.enable"})
-#             self._resend_chat_messages()
+
+        self._resend_chat_messages()
+
         if self.location:
             self.location.handle_reconnect(self)
+
 #         for id in self.sent_queries:
 #             self.send_message(self.sent_queries[id]["query"])
 #         for id in self._queries:
@@ -307,7 +307,8 @@ class Client:
             raise UnhandledClientRequestError(data["command"])
 
     def send_message(self, item):
-        """Send a message or command to the client.
+        """
+        Send a message or command to the client.
 
         :type item: dict
         """
@@ -315,34 +316,23 @@ class Client:
             logger.debug("Sending the following message to {}:\n{}".format(self.name, pprint.pformat(item)))
         self.messages.put(item)
 
-#     def send_chat_message(self, item):
-#         """Send a chat message to the client.
-#
-#         @param item: The chat command to be sent.
-#         @type item: dict
-#         """
-#         self._chat_history.append(item)
-#         if self._chat_enabled:
-#             self.send_message(item)
-#
-#     def enable_chat(self):
-#         """Enable the chat."""
-#         if not self._chat_enabled:
-#             self._chat_enabled = True
-#             self.send_message({"command": "chat.enable"})
-#             self._resend_chat_messages()
-#
-#     def disable_chat(self):
-#         """Disable the chat."""
-#         if self._chat_enabled:
-#             self._chat_enabled = False
-#             self.send_message({"command": "chat.disable"})
-#
-#     def _resend_chat_messages(self):
-#         """Resend all chat messages in `self._chat_history`."""
-#         if self._chat_enabled:
-#             [self.send_message(msg) for msg in self._chat_history]
-#
+    def send_chat_message(self, item):
+        """
+        Send a chat message to the client.
+
+        The difference between this function and `send_message()` is that
+        we store a chat history and resend it on reconnect.
+
+        @param item: The chat command to be sent.
+        @type item: dict
+        """
+        self._chat_history.append(item)
+        self.send_message(item)
+
+    def _resend_chat_messages(self):
+        """Resend all chat messages in `self._chat_history`."""
+        [self.send_message(msg) for msg in self._chat_history]
+
 #     def _get_next_query_id(self):
 #         id = self._next_query_id
 #         self._next_query_id += 1

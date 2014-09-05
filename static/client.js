@@ -786,14 +786,14 @@ chat = function() {
         },
 
 		// receive a chat message
-	    receive_message : function(json) {
-			var line = $("<span />", {html : ": " + json.message});
+	    receive_message : function(params) {
+			var line = $("<span />", {html : ": " + params["message"]});
 			line.prepend($("<span />", {
 						"class" : "chat_user",
-						text : json.client}));
+						text : params["sender"]}));
 			line.prepend($("<span />", {
 						"class" : "chat_time",
-						text : "<" + format_time(json.time) + "> "}));
+						text : "<" + format_time(params["time"]) + "> "}));
 			$("#chat_messages").append(line, $("<br />"));
 			$("#chat_messages").scrollTop(line.offset().top);
 		},
