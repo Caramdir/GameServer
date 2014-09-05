@@ -13,36 +13,24 @@ logger = logging.getLogger(__name__)
 
 class LocationManager:
     def __init__(self):
-        self.locations = set()
-        self.lobby = None
-
-    def create_default_locations(self):
         self.lobby = Lobby()
-
-    def add(self, location):
-        self.locations.add(location)
-
-    def remove(self, location):
-        self.locations.remove(location)
 
 
 class Location:
     """Abstract superclass for locations where clients/players can be (lobbies and games are locations)."""
-    def __init__(self, clients=set(), persistent=False, has_chat=True):
+    def __init__(self, clients=set(), has_chat=True):
         """
         Initialize a new location.
 
         :param clients: Initial clients in this location.
         :type clients: set
-        :param persistent: If False, this location will be dereferenced when all clients leave.
         :param has_chat: Whether this location has a chat.
         """
-        super().__init__()
-        self.clients = clients.copy()
-
-        server.get_instance().locations.add(self)
-        self.persistent = persistent
+        self.clients = set()
         self.has_chat = has_chat
+
+        for client in clients:
+            self.join(client)
 
     def join(self, client):
         """Add a client to the location."""
@@ -63,13 +51,6 @@ class Location:
     def leave(self, client, reason=None):
         """Remove a client from the location"""
         self.clients.remove(client)
-        if not self.persistent and not self.clients:
-            self._unlink()
-
-    def _unlink(self):
-        """Remove this location from the list of all locations.."""
-        assert len(self.clients) == 0, "Unlinking a non-empty location."
-        server.get_instance().locations.remove(self)
 
     def handle_request(self, client, command, data):
         """

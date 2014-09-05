@@ -267,7 +267,6 @@ class Server:
         logger.debug("Starting the server.")
         self.clients = base.client.ClientManager()
         self.locations = base.locations.LocationManager()
-        self.locations.create_default_locations()
         self.started = True
 #         self.sweeper.start()
         tornado.ioloop.IOLoop.instance().start()
