@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 from unittest import TestCase
 
 from tornado.testing import AsyncTestCase
@@ -102,6 +102,24 @@ class ClientTestCase(TestCase):
         self.assertTrue(c.messages.put.called)
         c.location.handle_reconnect.assert_called_once_with(c)
         self.assertGreater(c.session_id, sid)
+
+    def test_chat_history(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+
+        c.send_chat_message({"foo": "bar"})
+        c.send_message.assert_called_once_with({"foo": "bar"})
+        c.send_message.reset_mock()
+        c.send_chat_message({"x": "y"})
+        c.send_message.assert_called_once_with({"x": "y"})
+        c.send_message.reset_mock()
+
+        c._resend_chat_messages()
+        c.send_message.assert_has_calls([
+            call({"foo": "bar"}),
+            call({"x": "y"}),
+        ])
+
 
 
 class MessageQueueTestCase(AsyncTestCase):
