@@ -1,7 +1,9 @@
 from unittest.mock import Mock, call
 from unittest import TestCase
 
-from tornado.testing import AsyncTestCase
+from tornado.testing import AsyncTestCase, gen_test
+import tornado.ioloop
+import tornado.gen
 
 import base.client
 
@@ -121,11 +123,14 @@ class ClientTestCase(TestCase):
         ])
 
 
-
 class MessageQueueTestCase(AsyncTestCase):
     def setUp(self):
         super().setUp()
         self.mq = base.client.MessageQueue()
+
+    def get_new_ioloop(self):
+        tornado.ioloop.IOLoop.clear_instance()
+        return tornado.ioloop.IOLoop.instance()
 
     def test_connect_twice(self):
         ph1 = Mock()
@@ -140,7 +145,7 @@ class MessageQueueTestCase(AsyncTestCase):
         self.mq.wait_for_messages(ph)
         self.mq.client_reconnected()
 
-        ph.disconnect_old_connection.assert_called_once()
+        ph.disconnect_old_connection.assert_called_once_with()
         self.assertIsNone(self.mq._poll_request_handler)
 
         self.mq.put({"foo": "bar"})
@@ -158,12 +163,15 @@ class MessageQueueTestCase(AsyncTestCase):
     def test_initial_state(self):
         self.assertEqual(self.mq.get_all(), [])
 
+    @gen_test
     def test_send_messages(self):
         ph = Mock()
         self.mq.wait_for_messages(ph)
-        self.mq.put({"foo": "bar"})
 
-        ph.send_messages.assert_called_once()
+        self.mq.put({"foo": "bar"})
+        yield tornado.gen.moment
+
+        ph.send_messages.assert_called_once_with()
 
         ph2 = Mock()
         self.mq.wait_for_messages(ph2)
