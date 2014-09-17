@@ -6,45 +6,78 @@ import config
 
 
 class LoginTest(LiveTestCase):
-    def setUp(self):
+    def create_browser_instance(self):
         profile = webdriver.FirefoxProfile()
         profile.set_preference("extensions.autoDisableScopes", 15)
         profile.set_preference("extensions.enabledScopes", 1)
-        self.browser = webdriver.Firefox(profile)
-        self.browser.implicitly_wait(3)
+        browser = webdriver.Firefox(profile)
+        browser.implicitly_wait(3)
+        
+        self._browsers.append(browser)
+        return browser
+        
+    def setUp(self):
+        self._browsers = []
 
     def tearDown(self):
-        self.browser.quit()
+        for browser in self._browsers:
+            browser.quit()
+        self._browsers = []
 
     def test_simple(self):
         # Alice visits the website.
-        self.browser.get("http://localhost:{}".format(config.port))
+        alice = self.create_browser_instance()
+        alice.get("http://localhost:{}".format(config.port))
 
         # Alice greeted by a welcome message.
-        self.assertIn("Welcome", self.browser.page_source)
+        self.assertIn("Welcome", alice.page_source)
 
         # TODO: There is a description what this website is about.
 
         # Alice sees a start button and clicks on it
-        self.browser.find_element_by_id("start").click()
+        alice.find_element_by_id("start").click()
         # Alice is informed that she needs to enter a name
-        error = self.browser.find_element_by_class_name("error_message")
+        error = alice.find_element_by_class_name("error_message")
         self.assertIn("enter a name", error.text.lower())
 
         # Alice can just choose a name and start playing without creating an account
-        name_box = self.browser.find_element_by_id("name")
+        name_box = alice.find_element_by_id("name")
         self.assertIn("name", name_box.get_attribute("placeholder"))
         name_box.send_keys("Alice")
         name_box.send_keys(Keys.ENTER)
 
         # Alice finds herself in the lobby.
-        info_box = self.browser.find_element_by_id("lobby_info")
+        info_box = alice.find_element_by_id("lobby_info")
         # She sees that her name is displayed correctly.
         self.assertIn("Alice", info_box.text)
 
-        # A second user comes.
-        # They see the welcome page again.
-        # They have to pick a different name.
-        # The also arrive in the lobby and have the correct name.
-        # They can see the first user.
+        # A second user (Bob) comes.
+        bob = self.create_browser_instance()
+        bob.get("http://localhost:{}".format(config.port))
+
+        # Bob sees the welcome page.
+        self.assertIn("Welcome", bob.page_source)
+
+        # Bob tries to log in as Alice, but the name is already in use.
+        name_box = bob.find_element_by_id("name")
+        name_box.send_keys("Alice")
+        name_box.send_keys(Keys.ENTER)
+
+        error = bob.find_element_by_class_name("error_message")
+        self.assertIn("already", error.text.lower())
+
+        # Bob enters his real name.
+        name_box = bob.find_element_by_id("name")
+        name_box.send_keys("Bob")
+        name_box.send_keys(Keys.ENTER)
+
+        # Bob arrives in the lobby and has the correct name.
+        info_box = bob.find_element_by_id("lobby_info")
+        self.assertIn("Bob", info_box.text)
+
+        # Bob sees that Alice is listed as a user and vice versa.
+        user_list = bob.find_element_by_id("lobby_player_table")
+        self.assertIn("Alice", user_list.text)
+        user_list = alice.find_element_by_id("lobby_player_table")
+        self.assertIn("Bob", user_list.text)
 

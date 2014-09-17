@@ -106,7 +106,7 @@ class Location:
 
 class Lobby(Location):
     def __init__(self):
-        super().__init__(persistent=True, has_chat=True)
+        super().__init__(has_chat=True)
 
     def join(self, client):
         """Announce to everyone that the client joined and send it the init command.
