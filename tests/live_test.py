@@ -6,7 +6,7 @@ from selenium.webdriver.common.keys import Keys
 
 import tornado.ioloop
 
-import config
+from configuration import config
 import server
 
 

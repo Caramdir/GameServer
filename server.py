@@ -7,7 +7,8 @@ import tornado.web
 # import tornado.gen
 
 # Parse options and load configuration.
-import config
+import configuration
+from configuration import config
 # # Set up the log
 # # noinspection PyUnresolvedReferences
 # import base.log
@@ -260,6 +261,9 @@ class Server:
         self.started = False
         self.clients = None
         self.locations = None
+        self._config_overrides = {}
+        configuration.add_override(self._config_overrides)
+        self.games = {}
 
 #         self.sweeper = tornado.ioloop.PeriodicCallback(base.client.remove_inactive, 60000)
 
@@ -280,6 +284,7 @@ class Server:
     def reset(self):
         if self.started:
             raise Exception("Cannot reset a running server.")
+        self._config_overrides.clear()
 
         # todo: create an new ioloop instance
 

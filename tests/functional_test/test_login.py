@@ -1,7 +1,7 @@
 from selenium.webdriver.common.keys import Keys
 
 from tests.live_test import SeleniumTestCase
-import config
+from configuration import config
 
 
 class LoginTest(SeleniumTestCase):
