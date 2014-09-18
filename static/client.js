@@ -787,13 +787,18 @@ chat = function() {
 
 		// receive a chat message
 	    receive_message : function(params) {
-			var line = $("<span />", {html : ": " + params["message"]});
+			var line = $("<span />", {
+                "class": "chat_message",
+                html : ": " + params["message"],
+            });
 			line.prepend($("<span />", {
-						"class" : "chat_user",
-						text : params["sender"]}));
+				"class" : "chat_user",
+				text : params["sender"],
+            }));
 			line.prepend($("<span />", {
-						"class" : "chat_time",
-						text : "<" + format_time(params["time"]) + "> "}));
+				"class" : "chat_time",
+				text : "<" + format_time(params["time"]) + "> ",
+            }));
 			$("#chat_messages").append(line, $("<br />"));
 			$("#chat_messages").scrollTop(line.offset().top);
 		},
