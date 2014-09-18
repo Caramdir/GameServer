@@ -1,29 +1,10 @@
-from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
-from tests.live_test import LiveTestCase
+from tests.live_test import SeleniumTestCase
 import config
 
 
-class LoginTest(LiveTestCase):
-    def create_browser_instance(self):
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference("extensions.autoDisableScopes", 15)
-        profile.set_preference("extensions.enabledScopes", 1)
-        browser = webdriver.Firefox(profile)
-        browser.implicitly_wait(3)
-        
-        self._browsers.append(browser)
-        return browser
-        
-    def setUp(self):
-        self._browsers = []
-
-    def tearDown(self):
-        for browser in self._browsers:
-            browser.quit()
-        self._browsers = []
-
+class LoginTest(SeleniumTestCase):
     def test_simple(self):
         # Alice visits the website.
         alice = self.create_browser_instance()

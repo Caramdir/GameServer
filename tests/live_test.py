@@ -1,8 +1,12 @@
 import unittest
 import threading
 
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+
 import tornado.ioloop
 
+import config
 import server
 
 
@@ -30,3 +34,33 @@ class LiveTestCase(unittest.TestCase):
         self._server_thread.join()
         server.get_instance().reset()
         # todo: reset changed config settings
+
+
+class SeleniumTestCase(LiveTestCase):
+    def create_browser_instance(self, username=""):
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference("extensions.autoDisableScopes", 15)
+        profile.set_preference("extensions.enabledScopes", 1)
+        browser = webdriver.Firefox(profile)
+        browser.implicitly_wait(3)
+
+        self._browsers.append(browser)
+
+        if username:
+            browser.get("http://localhost:{}".format(config.port))
+            name_box = browser.find_element_by_id("name")
+            self.assertIn("name", name_box.get_attribute("placeholder"))
+            name_box.send_keys(username)
+            name_box.send_keys(Keys.ENTER)
+
+        return browser
+
+    def _pre_setUp(self):
+        super()._pre_setUp()
+        self._browsers = []
+
+    def _post_tearDown(self):
+        super()._post_tearDown()
+        for browser in self._browsers:
+            browser.quit()
+        self._browsers = []
