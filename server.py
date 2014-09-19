@@ -1,5 +1,6 @@
 import json
 import logging
+import importlib
 
 import tornado.ioloop
 import tornado.web
@@ -287,6 +288,13 @@ class Server:
         self._config_overrides.clear()
 
         # todo: create an new ioloop instance
+
+    def add_game(self, name):
+        if not name in self.games:
+            module = importlib.import_module("games." + name)
+            assert "name" in module.INFO, "INFO not set correctly for {}".format(name)
+            self.games[name] = module.INFO
+
 
 
 _instance = None

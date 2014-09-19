@@ -108,32 +108,13 @@ class Lobby(Location):
     def __init__(self):
         super().__init__(has_chat=True)
 
-    def join(self, client):
-        """Announce to everyone that the client joined and send it the init command.
-
-        :param client: The joining client.
-        """
-        d = {"command": "lobby.client_joins", "client_id": client.id, "client_name": str(client)}
-        for c in self.clients:
-            c.send_message(d)
-        super().join(client)
-
     def send_init(self, client):
         """Send the setup command to a client."""
         super().send_init(client)
         client.send_message({
             "command": "lobby.init",
-            "clients": {c.id: str(c) for c in self.clients},
-#            "games": {game: config.GAMES[game]["name"] for game in config.GAMES}, # should be lobbies
-#            "this_lobby": self.name,
         })
 
-    def leave(self, client, reason=None):
-        super().leave(client, reason)
-
-        d = {"command": "lobby.client_leaves", "client_id": client.id}
-        for c in self.clients:
-            c.send_message(d)
 
 # class WelcomeLocation(Location):
 #     """

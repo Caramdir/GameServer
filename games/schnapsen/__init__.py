@@ -1,6 +1,6 @@
-from games.schnapsen import game
+#from games.schnapsen import game
 
 INFO = {
     "name": "Schnapsen",
-    "lobby": game.Lobby(),
+#    "lobby": game.Lobby(),
 }

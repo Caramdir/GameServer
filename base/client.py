@@ -255,6 +255,7 @@ class Client:
         self.last_activity = time.time()
 
     def handle_new_connection(self):
+        """The client (re)connects. Send them everything they need."""
         self.touch()
 
         self.session_id += 1
@@ -271,6 +272,13 @@ class Client:
 #         if not config.DEVTEST:
 #             msg["cache_control"] = config.cache_control
         self.send_message(msg)
+
+        games = {key: server.get_instance().games[key]["name"] for key in server.get_instance().games.keys()}
+        games["lobby"] = "Lobby"
+        self.send_message({
+            "command": "set_games_info",
+            "games": games,
+        })
 
         self._resend_chat_messages()
 
