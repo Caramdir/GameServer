@@ -764,7 +764,10 @@ chat = function() {
 
 		// receive a system message
 		system_message : function(json) {
-			var line = $("<span />", {text : json.message, "class" : "system-message system-message_" + json.level});
+			var line = $("<span />", {
+                text : json.message,
+                "class" : "system-message system-message_" + json.level
+            });
             line.prepend($("<span />", {
                 "class" : "chat_time",
                 text : "<" + format_time(json.time) + "> "}));

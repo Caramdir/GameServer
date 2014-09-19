@@ -411,16 +411,19 @@ class Client:
 #         self._queries = {}
 #         self.sent_queries = {}
 #         self.send_message({"command": "cancel_interactions"})
-#
-#     def notify_of_exception(self, e):
-#         """Notify the user that an exception occurred.
-#         :type e: Exception
-#         """
-#         if self.location:
-#             if isinstance(e, ClientCommunicationError):
-#                 self.location.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
-#             else:
-#                 self.location.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
+
+    def notify_of_exception(self, e):
+        """
+        Notify the user that an exception occurred.
+
+        :param e: The exception that occurred.
+        :type e: Exception
+        """
+        if self.location:
+            if isinstance(e, ClientCommunicationError):
+                self.location.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
+            else:
+                self.location.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
 #
 #
 # class NullClient():

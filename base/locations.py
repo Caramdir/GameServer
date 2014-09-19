@@ -95,13 +95,17 @@ class Location:
 #         :param command: The cheat command (without "cheat: ").
 #         """
 #         pass
-#
-#     def system_message(self, text, level="WARN"):
-#         """Send a system message to everyone."""
-#         d = {"command": "chat.system_message", "message": text, "level": level, "time": time.time()}
-#         for c in self.clients:
-#             c.send_chat_message(d)
-#         base.client.send_all_messages()
+
+    def system_message(self, text, level="WARN"):
+        """Send a system message to everyone."""
+        d = {
+            "command": "chat.system_message",
+            "message": text,
+            "level": level,
+            "time": time.time()
+        }
+        for c in self.clients:
+            c.send_chat_message(d)
 
 
 class Lobby(Location):

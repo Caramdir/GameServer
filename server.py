@@ -89,6 +89,7 @@ class ClientRequestHandler(BaseHandler):
             self.write("OK")
         except Exception as e:
             self.current_user.notify_of_exception(e)
+            # todo: Be a bit smarter about which exceptions to re-raise and which to just log or ignore.
             raise
 
 
