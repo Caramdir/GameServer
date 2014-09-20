@@ -3,6 +3,8 @@ import threading
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import Select, WebDriverWait
 
 import tornado.ioloop
 
@@ -37,7 +39,7 @@ class LiveTestCase(unittest.TestCase):
 
 
 class SeleniumTestCase(LiveTestCase):
-    def create_browser_instance(self, username=""):
+    def create_browser_instance(self, username="", game=""):
         profile = webdriver.FirefoxProfile()
         profile.set_preference("extensions.autoDisableScopes", 15)
         profile.set_preference("extensions.enabledScopes", 1)
@@ -52,6 +54,15 @@ class SeleniumTestCase(LiveTestCase):
             self.assertIn("name", name_box.get_attribute("placeholder"))
             name_box.send_keys(username)
             name_box.send_keys(Keys.ENTER)
+
+            if game:
+                switcher = Select(browser.find_element_by_id("lobby_switcher_select"))
+                switcher.select_by_value(game)
+                WebDriverWait(browser, 10).until(
+                    expected_conditions.title_contains(
+                        server.get_instance().games[game]["name"]
+                    )
+                )
 
         return browser
 

@@ -333,7 +333,7 @@ class GameLobby(base.locations.Lobby):
 
         :param client: The joining client.
         """
-        d = {"command": "lobby.client_joins", "client_id": client.id, "client_name": str(client)}
+        d = {"command": "gamelobby.client_joins", "client_id": client.id, "client_name": str(client)}
         for c in self.clients:
             c.send_message(d)
         super().join(client)
@@ -358,7 +358,7 @@ class GameLobby(base.locations.Lobby):
 
         super().leave(client, reason)
 
-        d = {"command": "lobby.client_leaves", "client_id": client.id}
+        d = {"command": "gamelobby.client_leaves", "client_id": client.id}
         for c in self.clients:
             c.send_message(d)
 

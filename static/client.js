@@ -409,14 +409,24 @@ lobby = function () {
         // todo: Reenable quitting.
         // $("#lobby_quit").prop("href", "/quit/" + client_id);
     };
-
+/*
+    var on_about_click = function() {
+        $("#about_div").show().html(games[current_game].lobby.about_text);
+        $("#about_div a").attr("target", "_blank");
+        $("#about_div").append($("<button/>", {
+            id: "about_box_close_button",
+            text: "close",
+            click: function() {$("#about_div").hide();}
+        }));
+    };
+*/
     return {
         current: "",
 
         init: function (params) {
             lobby.current = params["this_lobby"];
 
-            ui.title.set("Welcome");
+            ui.title.set(available_games[lobby.current]);
             $("#main").removeClass().addClass("lobby");
             cancel_interactions = default_cancel_interactions;
 
@@ -468,17 +478,17 @@ gamelobby = function () {
 	};
 
     var player_cell_clicked = function() {
-        var num = $('input[name="players_radio"]:checked').length + 1;
-        if (num < min_players || num > max_players) {
-            $("#lobby_propose_button").prop('disabled', true);
-        } else {
-            $("#lobby_propose_button").prop('disabled', false);
-        }
-        if (games[current_game].lobby && games[current_game].lobby.on_player_cell_clicked) {
-            games[current_game].lobby.on_player_cell_clicked(num);
-        }
+//        var num = $('input[name="players_radio"]:checked').length + 1;
+//        if (num < min_players || num > max_players) {
+//            $("#lobby_propose_button").prop('disabled', true);
+//        } else {
+//            $("#lobby_propose_button").prop('disabled', false);
+//        }
+//        if (games[current_game].lobby && games[current_game].lobby.on_player_cell_clicked) {
+//            games[current_game].lobby.on_player_cell_clicked(num);
+//        }
     };
-
+/*
 	var propose_game = function() {
 		var players = $('input[name="players_radio"]:checked');
 		var id_list = [];
@@ -493,97 +503,58 @@ gamelobby = function () {
 
 		send_request({command : "lobby.propose_game", players : id_list, options: options});
 	};
-
-    var on_about_click = function() {
-        $("#about_div").show().html(games[current_game].lobby.about_text);
-        $("#about_div a").attr("target", "_blank");
-        $("#about_div").append($("<button/>", {
-            id: "about_box_close_button",
-            text: "close",
-            click: function() {$("#about_div").hide();}
-        }));
-    };
-
+*/
 	var layout = [];
 
 	return {
-		init : function(json) {
-			min_players = json.min_players;
-			max_players = json.max_players;
-            ui.title.set(available_games[lobby.current]);
-            $("#main").removeClass().addClass("lobby");
-            cancel_interactions = default_cancel_interactions;
+		init : function(params) {
+			min_players = params["min_players"];
+			max_players = params["max_players"];
 
-            loader.css("/static/" + json.this_game + "/game.css");
-			loader.html('/static/lobby.html', $("#main"), function() {
-                lobby.populate_switcher(json["games"])
-                $("#about_button").on("click", on_about_click);
-                $("#about_div").hide();
+            loader.css("/static/" + params.this_game + "/game.css");
+            // $("#automatch").hide();
 
-                if (admin) {
-                    $("#lobby_switcher").append($("<button/>",{
-                        text: "admin",
-                        click: function () {
-                            send_request({"command": "go_to_admin"});
-                        }
-                    }))
+            $("#lobby_propose_form").submit(function() {return false;});
+            $("#lobby_propose_button").click(function() { propose_game(); return false; });
+            if (min_players > 1) {
+                $("#lobby_propose_button").prop('disabled', true);
+            }
+
+            layout = [];
+            for (var p in params["clients"]) {
+                if (!params["clients"].hasOwnProperty(p)) continue;
+                if (p != client_id) {
+                    gamelobby.client_joins({client_id : p, client_name : params["clients"][p]});
                 }
+            }
 
-                $("#automatch").hide();
-
-                $("#lobby_propose_form").submit(function() {return false;});
-                $("#lobby_propose_button").click(function() { propose_game(); return false; });
-                if (min_players > 1) {
-                    $("#lobby_propose_button").prop('disabled', true);
-                }
-
-                layout = [];
-                for (var p in json.clients) {
-                    if (!json.clients.hasOwnProperty(p)) continue;
-                    if (p != client_id) {
-                        lobby.client_joins({client_id : p, client_name : json.clients[p]});
+            /*
+            loader.script("/static/" + params.this_game + "/game.js",
+                function() {
+                    if (games[current_game].lobby) {
+                        lobby.game_lobby = games[current_game].lobby
+                    } else {
+                        lobby.game_lobby = {}
+                    }
+                    if (lobby.game_lobby.init) {
+                        lobby.game_lobby.init();
                     }
                 }
-
-                on_resize = lobby.set_size;
-                $(window).resize();
-
-                loader.script("/static/" + json.this_game + "/game.js",
-                    function() {
-                        if (games[current_game].lobby) {
-                            lobby.game_lobby = games[current_game].lobby
-                        } else {
-                            lobby.game_lobby = {}
-                        }
-                        if (lobby.game_lobby.init) {
-                            lobby.game_lobby.init();
-                        }
-                    });
-            });
+            );
+            */
 		},
 
-        populate_switcher : function(games) {
-            $("#lobby_switcher").change(function() {
-                send_request({command : "lobby.switch", to : $("#lobby_switcher_select").val()});
-                return false;
-            });
-            $.each(games, function(game, name) {
-                $("#lobby_switcher_select").append($("<option />", {
-                    value : game,
-                    text : name,
-                    selected : (game == current_game)}));
-            });
-
-            $("#lobby_quit").prop("href", "/quit/" + client_id);
-        },
-
-		client_joins : function(data) {
+		client_joins : function(params) {
 			var added = false;
-			for (var row = 0; row < layout.length; row++) {
-				for (var col = 0; col < layout[row].length; col++) {
+            var col, row;
+
+			for (row = 0; row < layout.length; row++) {
+				for (col = 0; col < layout[row].length; col++) {
 					if (layout[row][col] == null) {
-						layout[row][col] = data.client_id;
-						$("#lobby_player_table_" + row + "_" + col).append(create_player_cell(data.client_id, data.client_name));
+						layout[row][col] = params["client_id"];
+						$("#lobby_player_table_" + row + "_" + col).append(
+                            create_player_cell(params["client_id"], params["client_name"])
+                        );
 						added = true;
 						break;
 					}
@@ -593,22 +564,24 @@ gamelobby = function () {
 
 			if (!added) {
 				layout.push([null, null, null]);
-				var row = layout.length - 1;
+				row = layout.length - 1;
 				var tr = $("<tr />", {id : "lobby_player_table_" + row});
-				for (var col = 0; col < layout[row].length; col++) {
+				for (col = 0; col < layout[row].length; col++) {
 					tr.append($("<td />", {id : "lobby_player_table_" + row + "_" + col}));
 				}
 				$("#lobby_player_table").append(tr);
-				$("#lobby_player_table_" + row + "_0").append(create_player_cell(data.client_id, data.client_name));
-				layout[row][0] = data.client_id;
+				$("#lobby_player_table_" + row + "_0").append(
+                    create_player_cell(params["client_id"], params["client_name"])
+                );
+				layout[row][0] = params.client_id;
 			}
 		},
 
-		client_leaves : function(data) {
+		client_leaves : function(params) {
 			var found = false;
 			for (var row = 0; row < layout.length; row++) {
 				for (var col = 0; col < layout[row].length; col++) {
-					if (layout[row][col] == data.client_id) {
+					if (layout[row][col] == params["client_id"]) {
 						$("#lobby_player_table_" + row + "_" + col).empty();
 						layout[row][col] = null;
 						found = true;
@@ -618,11 +591,7 @@ gamelobby = function () {
 				if (found) break;
 			}
 		},
-
-		set_size : function() {
-		},
 	};
-
 }();
 
 gamelobby.automatch = function() {

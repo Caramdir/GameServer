@@ -59,10 +59,3 @@ class LoginTest(SeleniumTestCase):
         # Bob arrives in the lobby and has the correct name.
         info_box = bob.find_element_by_id("lobby_info")
         self.assertIn("Bob", info_box.text)
-
-        # Bob sees that Alice is listed as a user and vice versa.
-        # user_list = bob.find_element_by_id("lobby_player_table")
-        # self.assertIn("Alice", user_list.text)
-        # user_list = alice.find_element_by_id("lobby_player_table")
-        # self.assertIn("Bob", user_list.text)
-
