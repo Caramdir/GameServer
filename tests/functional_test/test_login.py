@@ -1,4 +1,5 @@
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 
 from tests.live_test import SeleniumTestCase
 from configuration import config
@@ -28,8 +29,11 @@ class LoginTest(SeleniumTestCase):
         name_box.send_keys(Keys.ENTER)
 
         # Alice finds herself in the lobby.
-        info_box = alice.find_element_by_id("lobby_info")
+        s = Select(alice.find_element_by_id("lobby_switcher_select"))
+        self.assertEqual("welcome", s.first_selected_option.get_attribute("value"))
+
         # She sees that her name is displayed correctly.
+        info_box = alice.find_element_by_id("lobby_info")
         self.assertIn("Alice", info_box.text)
 
         # A second user (Bob) comes.
@@ -57,8 +61,8 @@ class LoginTest(SeleniumTestCase):
         self.assertIn("Bob", info_box.text)
 
         # Bob sees that Alice is listed as a user and vice versa.
-        user_list = bob.find_element_by_id("lobby_player_table")
-        self.assertIn("Alice", user_list.text)
-        user_list = alice.find_element_by_id("lobby_player_table")
-        self.assertIn("Bob", user_list.text)
+        # user_list = bob.find_element_by_id("lobby_player_table")
+        # self.assertIn("Alice", user_list.text)
+        # user_list = alice.find_element_by_id("lobby_player_table")
+        # self.assertIn("Bob", user_list.text)
 

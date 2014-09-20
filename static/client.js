@@ -402,7 +402,7 @@ lobby = function () {
             $("#lobby_switcher_select").append($("<option />", {
                 value : identifier,
                 text : name,
-                selected : identifier == "lobby",
+                selected : identifier == lobby.current,
             }));
         });
 
@@ -411,7 +411,11 @@ lobby = function () {
     };
 
     return {
-        init: function () {
+        current: "",
+
+        init: function (params) {
+            lobby.current = params["this_lobby"];
+
             ui.title.set("Welcome");
             $("#main").removeClass().addClass("lobby");
             cancel_interactions = default_cancel_interactions;
@@ -445,7 +449,6 @@ lobby = function () {
 gamelobby = function () {
 	var min_players;
 	var max_players;
-    var current_game;
 
 	var create_player_cell = function(id, name) {
 		var line = $("<span/>");
@@ -507,8 +510,7 @@ gamelobby = function () {
 		init : function(json) {
 			min_players = json.min_players;
 			max_players = json.max_players;
-            current_game = json.this_game;
-            ui.title.set(json.games[current_game]);
+            ui.title.set(available_games[lobby.current]);
             $("#main").removeClass().addClass("lobby");
             cancel_interactions = default_cancel_interactions;
 

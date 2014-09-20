@@ -145,7 +145,7 @@ class LoginHandler(BaseHandler):
         name = self.get_body_argument("name", default="", strip=True)
 
         try:
-            client = get_instance().clients.new(name, get_instance().locations.lobby)
+            client = get_instance().clients.new(name, get_instance().locations.welcome)
         except base.client.EmptyNameError:
             self.render("login.html",
                         disable_stored_logins=config.disable_stored_logins,
@@ -294,8 +294,8 @@ class Server:
         if not name in self.games:
             module = importlib.import_module("games." + name)
             assert "name" in module.INFO, "INFO not set correctly for {}".format(name)
+            assert "lobby" in module.INFO, "INFO not set correctly for {}".format(name)
             self.games[name] = module.INFO
-
 
 
 _instance = None

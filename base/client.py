@@ -274,7 +274,7 @@ class Client:
         self.send_message(msg)
 
         games = {key: server.get_instance().games[key]["name"] for key in server.get_instance().games.keys()}
-        games["lobby"] = "Lobby"
+        games["welcome"] = "Lobby"
         self.send_message({
             "command": "set_games_info",
             "games": games,

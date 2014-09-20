@@ -1,10 +1,9 @@
 import time
 import html
 import logging
-#
-# from config import GAMES
+
 # import config
-# import base.client
+import base.client
 import server
 
 
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class LocationManager:
     def __init__(self):
-        self.lobby = Lobby()
+        self.welcome = Lobby("welcome")
 
 
 class Location:
@@ -109,15 +108,32 @@ class Location:
 
 
 class Lobby(Location):
-    def __init__(self):
+    def __init__(self, identifier):
         super().__init__(has_chat=True)
+        self.identifier = identifier
 
     def send_init(self, client):
         """Send the setup command to a client."""
         super().send_init(client)
         client.send_message({
             "command": "lobby.init",
+            "this_lobby": self.identifier,
         })
+
+    def handle_request(self, client, command, data):
+        if command == "lobby.switch":
+            if data["to"] == "welcome":
+                new_lobby = server.get_instance().locations.welcome
+            else:
+                try:
+                    new_lobby = server.get_instance().games[data["to"]]["lobby"]
+                except KeyError:
+                    raise base.client.ClientCommunicationError(client, data, "Invalid game identifier {}.".format(data["to"]))
+            client.move_to(new_lobby)
+            return True
+
+        return super().handle_request(client, command, data)
+
 
 
 # class WelcomeLocation(Location):
