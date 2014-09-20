@@ -307,7 +307,7 @@ import base.locations
 #         return False
 
 
-class GameLobby(base.locations.Lobby):
+class Lobby(base.locations.Lobby):
     """Abstract superclass for all lobbies."""
 
     def __init__(self, game=None, min_players=1, max_players=2):
@@ -333,7 +333,7 @@ class GameLobby(base.locations.Lobby):
 
         :param client: The joining client.
         """
-        d = {"command": "gamelobby.client_joins", "client_id": client.id, "client_name": str(client)}
+        d = {"command": "games.lobby.client_joins", "client_id": client.id, "client_name": str(client)}
         for c in self.clients:
             c.send_message(d)
         super().join(client)
@@ -343,7 +343,7 @@ class GameLobby(base.locations.Lobby):
         """Send the setup command to a client."""
         super().send_init(client)
         client.send_message({
-            "command": "gamelobby.init",
+            "command": "games.lobby.init",
             "clients": {c.id: str(c) for c in self.clients},
             "min_players": self.min_players,
             "max_players": self.max_players,
@@ -358,7 +358,7 @@ class GameLobby(base.locations.Lobby):
 
         super().leave(client, reason)
 
-        d = {"command": "gamelobby.client_leaves", "client_id": client.id}
+        d = {"command": "games.lobby.client_leaves", "client_id": client.id}
         for c in self.clients:
             c.send_message(d)
 
@@ -372,7 +372,7 @@ class GameLobby(base.locations.Lobby):
     #     """Implement RequestHandler interface.
     #
     #     Possible commands:
-    #      * lobby.switch: Switch to the lobby of a different game.
+    #       * lobby.propose_game: Propose to start a game with some other players.
     #     """
     #     if command == "lobby.propose_game":
     #         self.propose_game(client, data["players"], data["options"])

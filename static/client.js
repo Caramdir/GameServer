@@ -389,6 +389,97 @@ welcome = function () {
 
 
 /*
+ * The chat
+ */
+
+chat = function() {
+    // var tz_offset = new Date().getTimezoneOffset() * 60000;
+    var enabled = false;
+    var initialized = false;
+
+    // send a chat message
+    var send_message = function() {
+        send_request({command : "chat.message", message : $("#chat_input").val()});
+        $("#chat_input").val("");
+    };
+
+    var format_time = function(time) {
+        var d = new Date(time*1000);
+        var h = d.getHours();
+        var m = d.getMinutes();
+        if (m < 10)
+            m = "0" + m;
+        return h + ":" + m;
+    };
+
+    return {
+        init : function() {
+            if (initialized)
+                return;
+            $("#chat").append($('<div id="chat_messages" />'));
+            $("#chat").append($('<form>', {
+                submit : function() { send_message(); return false; },
+                html : '<input type="text" id="chat_input" />'
+            }));
+            initialized = true;
+            if (enabled)
+                chat.enable();
+            else
+                chat.disable();
+        },
+
+        enable : function() {
+            $("#chat").show();
+            enabled = true;
+        },
+
+        disable : function() {
+            $("#chat").hide();
+            enabled = false;
+        },
+
+        // receive a chat message
+        receive_message : function(params) {
+            var line = $("<span />", {
+                "class": "chat_message",
+                html : ": " + params["message"],
+            });
+            line.prepend($("<span />", {
+                "class" : "chat_user",
+                text : params["sender"],
+            }));
+            line.prepend($("<span />", {
+                "class" : "chat_time",
+                text : "<" + format_time(params["time"]) + "> ",
+            }));
+            $("#chat_messages").append(line, $("<br />"));
+            $("#chat_messages").scrollTop(line.offset().top);
+        },
+
+        // receive a system message
+        system_message : function(json) {
+            var line = $("<span />", {
+                text : json.message,
+                "class" : "system-message system-message_" + json.level
+            });
+            line.prepend($("<span />", {
+                "class" : "chat_time",
+                text : "<" + format_time(json.time) + "> "}));
+            $("#chat_messages").append(line, $("<br />"));
+            $("#chat_messages").scrollTop(line.offset().top);
+        },
+
+        set_size : function() {
+            if (enabled) {
+                $("#chat input").width($("#chat").width());
+            }
+        },
+    };
+
+}();
+
+
+/*
  * The lobby
  */
 
@@ -456,7 +547,12 @@ lobby = function () {
 }();
 
 
-gamelobby = function () {
+/*
+ * Games
+ */
+games = {};
+
+games.lobby = function () {
 	var min_players;
 	var max_players;
 
@@ -524,7 +620,7 @@ gamelobby = function () {
             for (var p in params["clients"]) {
                 if (!params["clients"].hasOwnProperty(p)) continue;
                 if (p != client_id) {
-                    gamelobby.client_joins({client_id : p, client_name : params["clients"][p]});
+                    games.lobby.client_joins({client_id : p, client_name : params["clients"][p]});
                 }
             }
 
@@ -593,8 +689,8 @@ gamelobby = function () {
 		},
 	};
 }();
-
-gamelobby.automatch = function() {
+/*
+games.lobby.automatch = function() {
 
     var automatch_clicked = function() {
         if ($("#cb_automatch").prop("checked")) {
@@ -663,102 +759,7 @@ gamelobby.automatch = function() {
         rerequest : automatch_clicked,
     };
 }();
-
-
-/*
- * The chat
- */
-
-chat = function() {
-    // var tz_offset = new Date().getTimezoneOffset() * 60000;
-    var enabled = false;
-    var initialized = false;
-
-	// send a chat message
-	var send_message = function() {
-		send_request({command : "chat.message", message : $("#chat_input").val()});
-		$("#chat_input").val("");
-	};
-
-    var format_time = function(time) {
-        var d = new Date(time*1000);
-        var h = d.getHours();
-        var m = d.getMinutes();
-        if (m < 10)
-            m = "0" + m;
-        return h + ":" + m;
-    };
-
-	return {
-		init : function() {
-            if (initialized)
-                return;
-			$("#chat").append($('<div id="chat_messages" />'));
-			$("#chat").append($('<form>', {
-				submit : function() { send_message(); return false; },
-				html : '<input type="text" id="chat_input" />'
-			}));
-            initialized = true;
-            if (enabled)
-                chat.enable();
-            else
-                chat.disable();
-        },
-
-        enable : function() {
-            $("#chat").show();
-            enabled = true;
-		},
-
-        disable : function() {
-            $("#chat").hide();
-            enabled = false;
-        },
-
-		// receive a chat message
-	    receive_message : function(params) {
-			var line = $("<span />", {
-                "class": "chat_message",
-                html : ": " + params["message"],
-            });
-			line.prepend($("<span />", {
-				"class" : "chat_user",
-				text : params["sender"],
-            }));
-			line.prepend($("<span />", {
-				"class" : "chat_time",
-				text : "<" + format_time(params["time"]) + "> ",
-            }));
-			$("#chat_messages").append(line, $("<br />"));
-			$("#chat_messages").scrollTop(line.offset().top);
-		},
-
-		// receive a system message
-		system_message : function(json) {
-			var line = $("<span />", {
-                text : json.message,
-                "class" : "system-message system-message_" + json.level
-            });
-            line.prepend($("<span />", {
-                "class" : "chat_time",
-                text : "<" + format_time(json.time) + "> "}));
-			$("#chat_messages").append(line, $("<br />"));
-			$("#chat_messages").scrollTop(line.offset().top);
-		},
-
-		set_size : function() {
-            if (enabled) {
-    			$("#chat input").width($("#chat").width());
-            }
-		},
-	};
-
-}();
-
-/*
- * Games
- */
-games = {};
+*/
 
 /*
  * Base functions
