@@ -2,7 +2,8 @@ import time
 import html
 import logging
 
-# import config
+import tornado.ioloop
+
 import base.client
 import server
 
@@ -105,6 +106,28 @@ class Location:
         }
         for c in self.clients:
             c.send_chat_message(d)
+
+    def notify_of_exception(self, e):
+        """
+        Notify all users that an exception occurred.
+
+        :param e: The exception that occurred.
+        :type e: Exception
+        """
+        if isinstance(e, base.client.ClientCommunicationError):
+            self.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
+        else:
+            self.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
+
+    def anchor_coroutine(self, coroutine):
+        future = coroutine()
+        tornado.ioloop.IOLoop.instance().add_future(future, self._anchored_coroutine_done)
+
+    def _anchored_coroutine_done(self, future):
+        e = future.exception()
+        if e:
+            self.notify_of_exception(e)
+            raise e
 
 
 class Lobby(Location):

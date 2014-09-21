@@ -171,7 +171,7 @@ class Client:
         self.messages = MessageQueue()
 #         self._next_query_id = 1
 #         self.sent_queries = {}          # todo: remove when send_query is removed
-#         self._queries = {}              # holds futures of the coroutine interface
+        self._queries = {}              # holds futures of the coroutine interface
 #
 #         # todo: All UI should be via coroutines.
 #         self.ui = base.interface.BasicUI(self)
@@ -397,20 +397,19 @@ class Client:
 #         else:
 #             raise ClientCommunicationError(self, response, "Invalid query id.")
 #
-#     def cancel_interactions(self, exception=None):
-#         """Stop all current interactions.
-#
-#         :param exception: Exception to pass to all waiting functions (in the coroutine interface).
-#         :type exception: Exception
-#         """
-#         if exception:
-#             assert isinstance(exception, Exception)
-#             for query in self._queries.values():
-#                 query["future"].set_exception(exception)
-#
-#         self._queries = {}
-#         self.sent_queries = {}
-#         self.send_message({"command": "cancel_interactions"})
+    def cancel_interactions(self, exception=None):
+        """Stop all current interactions.
+
+        :param exception: Exception to pass to all waiting functions (in the coroutine interface).
+        :type exception: Exception
+        """
+        if exception:
+            assert isinstance(exception, Exception)
+            for query in self._queries.values():
+                query["future"].set_exception(exception)
+
+        self._queries = {}
+        self.send_message({"command": "cancel_interactions"})
 
     def notify_of_exception(self, e):
         """
@@ -420,12 +419,9 @@ class Client:
         :type e: Exception
         """
         if self.location:
-            if isinstance(e, ClientCommunicationError):
-                self.location.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
-            else:
-                self.location.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
-#
-#
+            self.location.notify_of_exception(e)
+
+
 # class NullClient():
 #     """A client where all messages are discarded that can substitute for a real client (eg. after it disconnected)"""
 #

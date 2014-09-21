@@ -1,36 +1,46 @@
 """Lobbies and proposing/creating games."""
 
-# from collections import defaultdict, deque
+from collections import defaultdict
 # import copy
 # import random
 # import logging
-#
-# from base.tools import plural_s, english_join_list
+
+from tornado.gen import coroutine
+import toro
+
+from base.tools import plural_s, english_join_list
 # import base.client
 import base.locations
 # from configuration import config
 #
 # logger = logging.getLogger(__name__)
-#
-#
-# class BaseGameProposal():
-#     """Base class for game proposals."""
-#
-#     def __init__(self, lobby, clients, options):
-#         self.lobby = lobby
-#         self.clients = set(clients)
+
+
+class GameProposal():
+    """Base class for game proposals."""
+
+    def __init__(self, lobby, clients, options):
+        """
+
+
+        :param lobby: The lobby this proposal belongs to.
+        :type lobby: Lobby
+        :param clients: The players who are invited.
+        :param options: Any game options
+        """
+        self.lobby = lobby
+        self.clients = set(clients)
 #         self._validate_client_number()
-#         self.options = {}
-#         self.accepted = set()
-#         self.is_accepted = False
-#         self.waitlisted = set()
-#         self.invited = set()
+        self.options = {}
+        self.accepted = set()
+        self.is_accepted = False
+        self.invited = set()    # Clients who have already been invited.
+                                # We need this so that non-invited clients don't get a cancellation notice.
 #         self._validate_and_set_options(options)
-#
-#         for client in self.clients:
-#             self.lobby.proposals[client].append(self)
-#             self._send_invitation(client)
-#
+
+        lobby.proposals.add(self)
+        lobby.anchor_coroutine(self._do_proposal)
+
 #     def _validate_client_number(self):
 #         """Check whether the right amount of players was selected."""
 #         if self.lobby.min_players == self.lobby.max_players:
@@ -54,7 +64,7 @@ import base.locations
 #                         self.lobby.max_players-1,
 #                         plural_s(self.lobby.max_players-1))
 #                 )
-#
+
 #     #noinspection PyMethodMayBeStatic
 #     def _validate_and_set_options(self, options):
 #         """Validate options and store them.
@@ -64,108 +74,151 @@ import base.locations
 #         In case of invalid options, InvalidGameOptionsError.
 #         """
 #         pass
+
+    @coroutine
+    def _do_proposal(self):
+        """
+        Propose a game to everyone.
+        """
+        yield [self._do_proposal_for(client) for client in self.clients]
+        self.lobby.proposals.remove(self)
+
+    @coroutine
+    def _do_proposal_for(self, client):
+        """
+        Propose the game to a specific client.
+
+        We use central per client locks so that a client is not invited to two different proposals.
+
+        :type client: base.client.Client
+        """
+        with (yield self.lobby.proposal_locks[client].aquire()):
+            self.invited.add(client)
+            try:
+                result = yield client.ui.ask_yes_no(
+                    self._get_invitation_prompt(client),
+                    leave_question=True
+                )
+                if result:
+                    yield self.accept(client)
+                else:
+                    self.decline(client)
+            except ClientDeclinedFlag:
+                return
+
 #
-#     def _send_invitation(self, client):
-#         """Send invitation to client or waitlist them."""
-#         if client in self.invited:
-#             return
-#         if self.lobby.proposals[client][0] != self:
-#             self.waitlisted.add(client)
-#             return
-#
-#         client.ui.ask_yes_no(
-#             self._get_invitation_prompt(client),
-#             callback=self._invitation_callback,
-#             leave_question=True)
-#
-#         if client in self.waitlisted:
-#             self.waitlisted.remove(client)
-#         self.invited.add(client)
-#
-#     def _invitation_callback(self, client, result):
-#         if result:
-#             self.accept(client)
-#         else:
-#             self.decline(client)
-#
-#     def _get_invitation_prompt(self, client):
-#         if len(self.clients) == 1:
-#             return self._get_solitaire_prompt(client),
-#         else:
-#             return self._get_multiplayer_prompt(client)
-#
-#     #noinspection PyMethodMayBeStatic
-#     def _get_solitaire_prompt(self, client):
-#         return "Do you want to start a solitaire game?"
-#
-#     def _get_multiplayer_prompt(self, client):
-#         return "Do you want to start a game with {players}?".format(
-#             players=english_join_list([c.html for c in self.clients if c != client])
-#         )
-#
-#     def accept(self, client):
-#         self.accepted.add(client)
-#         if self.accepted == self.clients:
-#             self.is_accepted = True
-#             for c in self.clients:
-#                 c.cancel_interactions()
-#             self._start_game()
-#         else:
-#             for c in self.clients:
-#                 if c == client:
-#                     c.ui.link("Cancel", self.decline, pre_text="You accept.")
-#                 elif c in self.invited:
-#                     c.ui.say(client.html + " accepts.")
-#         pass
-#
-#     def decline(self, client):
-#         for c in self.clients:
-#             if c in self.invited:
-#                 if c == client:
-#                     c.ui.say("You decline.")
-#                 else:
-#                     c.cancel_interactions()
-#                     c.ui.say(client.html + " declines.")
-#             self.lobby.proposals[c].remove(self)
-#             if self.lobby.proposals[c]:
-#                 self.lobby.proposals[c][0].waitlist_updated(c)
-#
-#     def client_left_lobby(self, client):
-#         assert client in self.clients
-#         if not self.is_accepted:
-#             self.decline(client)
-#
-#     def _start_game(self):
-#         """Game implementations have to override this."""
-#         raise NotImplementedError()
-#
-#     def waitlist_updated(self, client):
-#         """The waitlist of [client] has been changed."""
-#         self._send_invitation(client)
-#
-#     def handle_reconnect(self, client):
-#         if client in self.accepted:
-#             client.ui.say(self._get_invitation_prompt(client))
-#
-#
-# class PlayerGameProposal(BaseGameProposal):
-#     """A game proposal initiated by a player."""
-#     def __init__(self, lobby, proposer, others, options):
-#         """
-#         @param lobby: The lobby to which this proposal belongs.
-#         @type lobby: GameLobby
-#         @param proposer: The proposing player.
-#         @type proposer: base.client.Client
-#         @param others: The other players.
-#         @type others: set
-#         @param options: Any options
-#         @type options: dict
-#         """
-#         self.proposer = proposer
-#         others.add(proposer)
-#         super().__init__(lobby, others, options)
-#
-#
+    def _get_invitation_prompt(self, client):
+        if len(self.clients) == 1:
+            return self._get_solitaire_prompt(client),
+        else:
+            return self._get_multiplayer_prompt(client)
+
+    #noinspection PyMethodMayBeStatic
+    def _get_solitaire_prompt(self, client):
+        return "Do you want to start a solitaire game?"
+
+    def _get_multiplayer_prompt(self, client):
+        return "Do you want to start a game with {players}?".format(
+            players=english_join_list([c.html for c in self.clients if c != client])
+        )
+
+    @coroutine
+    def accept(self, client):
+        """
+        A client accepts the proposal.
+
+        If everyone accepted, start the game. Otherwise show a cancellation link client.
+
+        :param client: The client that accepted.
+        :type client: base.client.Client
+        """
+        self.accepted.add(client)
+
+        if self.accepted == self.clients:
+            self.is_accepted = True
+            for c in self.clients:
+                c.cancel_interactions(GameStartingFlag())
+            self._start_game()
+
+        else:
+            for c in self.clients:
+                if c == client:
+                    try:
+                        yield c.ui.link("Cancel", self.decline, pre_text="You accept.")
+                        self.decline(client)
+                    except GameStartingFlag:
+                        pass
+                elif c in self.invited:
+                    c.ui.say(client.html + " accepts.")
+
+    def decline(self, client):
+        """
+        A client declines the proposal. Cancel the proposal
+
+        :param client: The declining client.
+        :type client: base.client.Client
+        """
+        for c in self.clients:
+            if c in self.invited:
+                if c == client:
+                    c.ui.say("You decline.")
+                else:
+                    c.cancel_interactions(ClientDeclinedFlag(client))
+                    c.ui.say(client.html + " declines.")
+
+    def client_left_lobby(self, client):
+        """
+        A client left the lobby.
+
+        If this is not due to the game starting, we cancel the proposal.
+
+        :param client: The client who leaves the lobby.
+        :type client: base.client.Client
+        """
+        if client in self.clients:
+            if not self.is_accepted:
+                self.decline(client)
+
+    def _start_game(self):
+        """Game implementations have to override this."""
+        raise NotImplementedError()
+
+    def handle_reconnect(self, client):
+        """
+        If the client has already accepted, then the invitation prompt will be lost on a page refresh.
+        So we resend it.
+        """
+        if client in self.accepted:
+            client.ui.say(self._get_invitation_prompt(client))
+
+
+class ClientDeclinedFlag(Exception):
+    def __init__(self, client):
+        self.client = client
+
+
+class GameStartingFlag(Exception):
+    pass
+
+
+class PlayerCreatedProposal(GameProposal):
+    """A game proposal initiated by a player."""
+    def __init__(self, lobby, proposer, others, options):
+        """
+        @param lobby: The lobby to which this proposal belongs.
+        @type lobby: GameLobby
+        @param proposer: The proposing player.
+        @type proposer: base.client.Client
+        @param others: The other players.
+        @type others: set
+        @param options: Any options
+        @type options: dict
+        """
+        self.proposer = proposer
+        others.add(proposer)
+        super().__init__(lobby, others, options)
+
+
 # class AutomatchGameProposal(BaseGameProposal):
 #     """A game proposal created by the AutoMatcher."""
 #
@@ -173,17 +226,17 @@ import base.locations
 #         super().decline(client)
 #         for c in self.clients:
 #             c.send_message({"command": "lobby.automatch.rerequest"})
-#
-#
-# class GameProposalCreationError(Exception):
-#     """An error during game proposal creation."""
-#     def __init__(self, message):
-#         self.message = message
-#
-#     def __str__(self):
-#         return self.message
-#
-#
+
+
+class GameProposalCreationError(Exception):
+    """An error during game proposal creation."""
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
 # class InvalidGameOptionsError(GameProposalCreationError):
 #     """Attempted to set an invalid option."""
 #
@@ -310,8 +363,9 @@ import base.locations
 class Lobby(base.locations.Lobby):
     """Abstract superclass for all lobbies."""
 
-    def __init__(self, game=None, min_players=1, max_players=2):
-#                 proposal_class=PlayerGameProposal, automatcher=AutoMatcher):
+    def __init__(self, game=None, min_players=1, max_players=2,
+                 proposal_class=PlayerCreatedProposal):
+                 #, automatcher=AutoMatcher):
         """
         Initialize the lobby.
 
@@ -324,9 +378,10 @@ class Lobby(base.locations.Lobby):
         assert min_players >= 1
         self.min_players = min_players
         self.max_players = max_players
-        # self.game_proposal = proposal_class
+        self.proposal_class = proposal_class
         # self.automatcher = automatcher(self)
-        # self.proposals = defaultdict(deque)
+        self.proposals = set()
+        self.proposal_locks = defaultdict(toro.Lock)
 
     def join(self, client):
         """Announce to everyone that the client joined and send it the init command.
@@ -350,10 +405,9 @@ class Lobby(base.locations.Lobby):
         })
 
     def leave(self, client, reason=None):
-        # if client in self.proposals:
-        #     for proposal in copy.copy(self.proposals[client]):
-        #         proposal.client_left_lobby(client)
-        #     del self.proposals[client]
+        for proposal in self.proposals:
+            proposal.client_left_lobby(client)
+            del self.proposal_locks[client]
         # self.automatcher.client_leaves_lobby(client)
 
         super().leave(client, reason)
@@ -362,38 +416,34 @@ class Lobby(base.locations.Lobby):
         for c in self.clients:
             c.send_message(d)
 
-    # def handle_reconnect(self, client):
-    #     super().handle_reconnect(client)
+    def handle_reconnect(self, client):
+        super().handle_reconnect(client)
     #     self.automatcher.handle_reconnect(client)
-    #     if self.proposals[client]:
-    #         self.proposals[client][0].handle_reconnect(client)
+        for proposal in self.proposals:
+            proposal.handle_reconnect(client)
 
-    # def handle_request(self, client, command, data):
-    #     """Implement RequestHandler interface.
-    #
-    #     Possible commands:
-    #       * lobby.propose_game: Propose to start a game with some other players.
-    #     """
-    #     if command == "lobby.propose_game":
-    #         self.propose_game(client, data["players"], data["options"])
-    #         return True
-    #
-    #     handled = super().handle_request(client, command, data)
-    #     if self.proposals[client]:
-    #         handled = self.proposals[client][0].handle_request(client, command, data) or handled
+    def handle_request(self, client, command, data):
+        """
+        Possible commands:
+          * lobby.propose_game: Propose to start a game with some other players.
+        """
+        if command == "lobby.propose_game":
+            self.propose_game(client, data["players"], data["options"])
+            return True
+
+        handled = super().handle_request(client, command, data)
     #     handled = self.automatcher.handle_request(client, command, data) or handled
-    #     return handled
+        return handled
 
-    # def propose_game(self, client, player_ids, options):
-    #     """Propose a new game."""
-    #     try:
-    #         self.game_proposal(
-    #             self,
-    #             client,
-    #             {c for c in self.clients if c.id in player_ids},
-    #             options
-    #         )
-    #     except GameProposalCreationError as e:
-    #         client.ui.say(e.message)
-
+    def propose_game(self, client, player_ids, options):
+        """Propose a new game."""
+        try:
+            self.proposal_class(
+                self,
+                client,
+                {c for c in self.clients if c.id in player_ids},
+                options
+            )
+        except GameProposalCreationError as e:
+            client.ui.say(e.message)
 
