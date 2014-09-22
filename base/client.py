@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class ClientManager:
     """Keep track of all clients."""
+    # todo: remove old clients
     def __init__(self):
         self.clients = {}
         self._next_id = 1
@@ -47,6 +48,17 @@ class ClientManager:
 
     def __getitem__(self, item):
         return self.clients[item]
+
+    def get_by_name(self, name):
+        """
+        :return: Return the client with the given name.
+        :rtype: Client
+        :raises: KeyError, if no client exists with the given name.
+        """
+        for c in self.clients.values():
+            if c.name == name:
+                return c
+        raise KeyError(name)
 
 
 class InvalidClientNameError(Exception):

@@ -53,6 +53,18 @@ class ClientManagerTestCase(TestCase):
 
         self.assertEqual(c.location, loc)
 
+    def test_get_by_name(self):
+        c1 = self.cm.new("foo")
+        c2 = self.cm.new("bar")
+        c3 = self.cm.new("baz")
+
+        self.assertEqual(c2, self.cm.get_by_name("bar"))
+        self.assertEqual(c3, self.cm.get_by_name("baz"))
+        self.assertEqual(c1, self.cm.get_by_name("foo"))
+
+        with self.assertRaises(KeyError):
+            self.cm.get_by_name("ham")
+
 
 class ClientTestCase(TestCase):
     def test_id(self):

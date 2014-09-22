@@ -23,6 +23,8 @@ class UI():
         :param leave_question: Whether the question should be left visible to the user after they answered.
         :return: The index of the choice the user made.
         """
+        assert len(answers) > 0, "You must give at least one answer."
+
         while True:
             result = yield self.client.query('choice', question=question, answers=answers, leave_question=leave_question)
             try:

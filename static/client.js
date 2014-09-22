@@ -148,7 +148,7 @@ function send_request(data) {
 function send_response(data) {
 	$.ajax({
 		type : "POST",
-		url : "/response/" + client_id,
+		url : "/response" + (devtest? "/" + client_id : "") + "?session_id=" + session_id,
 		data : JSON.stringify(data)
 	});
 }
