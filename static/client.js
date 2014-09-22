@@ -240,42 +240,6 @@ function default_cancel_interactions(data) {
 
 var cancel_interactions = default_cancel_interactions;
 
-function say(json) {
-	$("#interactions").append($("<span />", {html : json.message}));
-	$("#interactions").append($("<br />"));
-	scroll_to_bottom($("#interactions"));
-}
-
-function choice(data) {
-    var d = $("<div />", {id : "interaction_" + data.id});
-    if (data.leave_question) {
-        say({message: data.question});
-    } else {
-        d.html(data.question)
-        d.append($("<br />"));
-    }
-    $("#interactions").append(d);
-	var answers = $("<span />", {"class" : "choices"});
-	d.append(answers);
-    for (var i=0; i < data.answers.length; i++) {
-		var a = $("<a />", {
-			html : data.answers[i],
-			href : "#"});
-		a.click({id : data.id, reply : i}, choice_reply);
-		answers.append(a);
-		answers.append(" ");
-	}
-	scroll_to_bottom($("#interactions"));
-    ui.ask_for_input();
-}
-
-function choice_reply(event) {
-	send_response({id: event.data.id, value : event.data.reply});
-	$("#interaction_" + event.data.id).remove();
-	scroll_to_bottom($("#interactions"));
-	return false;
-}
-
 function scroll_to_bottom(e) {
 	e.scrollTop(e.prop("scrollHeight"));
 }
@@ -285,29 +249,56 @@ ui = function () {
         ui.title.notify_of_activity();
     };
 
-    var link = function(data) {
-        var s = $("<div/>", {id: "interaction_" + data.id});
-        if (data.pre_text) {
-            s.append($("<span/>", {html: data.pre_text}));
-            s.append("&nbsp;");
+    var say = function (params) {
+        $("#interactions").append($("<span />", {html : params["message"]}));
+        $("#interactions").append($("<br />"));
+        scroll_to_bottom($("#interactions"));
+    };
+
+    var choice = function (params) {
+        var div = $("<div />", {id : "interaction_" + params["id"]});
+
+        if (params["question"]) {
+            var q = $("<span />", {html: params["question"]});
+            if (params["new_line_after_question"])
+                q.append($("<br />"));
+            else
+                q.append("&nbsp;");
+
+            if (params["leave_question"])
+                $("#interactions").append(q);
+            else
+                div.append(q);
         }
-        s.append($("<a/>", {
-            html: data.link_text,
-            href: "#",
-            click: function() {
-                send_response({id: data.id});
-                $("#interaction_" + data.id).remove();
-                scroll_to_bottom($("#interactions"));
-            }
-        }));
-        $("#interactions").append(s);
+
+        var answers = $("<span />", {"class" : "choices"});
+        div.append(answers);
+        for (var i=0; i < params["answers"].length; i++) {
+            var a = $("<a />", {
+                html : params["answers"][i],
+                href : "#"});
+            a.click(
+                {id : params["id"], reply : i},
+                function (event) {
+                    send_response({id: event.data.id, value : event.data.reply});
+                    $("#interaction_" + event.data.id).remove();
+                    scroll_to_bottom($("#interactions"));
+                    return false;
+                }
+            );
+            answers.append(a);
+            answers.append(" ");
+        }
+
+        $("#interactions").append(div);
         scroll_to_bottom($("#interactions"));
         ui.ask_for_input();
     };
 
     return {
         ask_for_input: ask_for_input,
-        link: link,
+        say: say,
+        choice: choice,
         disable_form_field: function(id) {
             $("#"+id).prop("disabled", true);
             $('label[for="' + id + '"]').addClass("disabled");

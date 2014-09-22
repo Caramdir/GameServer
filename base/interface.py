@@ -8,7 +8,7 @@ class UI():
         self.client = client
 
     @coroutine
-    def ask_choice(self, question, answers, leave_question=False):
+    def ask_choice(self, question, answers, leave_question=False, new_line_after_question=True):
         """
         Ask a multiple choice question.
 
@@ -21,12 +21,20 @@ class UI():
         :param answers: The choices the user has.
         :type answers: list
         :param leave_question: Whether the question should be left visible to the user after they answered.
+        :param new_line_after_question: Whether to put a <br/> after the question.
         :return: The index of the choice the user made.
         """
         assert len(answers) > 0, "You must give at least one answer."
 
         while True:
-            result = yield self.client.query('choice', question=question, answers=answers, leave_question=leave_question)
+            result = yield self.client.query(
+                'ui.choice',
+                question=question,
+                answers=answers,
+                leave_question=leave_question,
+                new_line_after_question=new_line_after_question,
+            )
+
             try:
                 i = int(result["value"])
                 if not (0 <= i < len(answers)):
@@ -58,9 +66,9 @@ class UI():
         @param link_text: The text that is clickable.
         @param pre_text: Non-clickable text before the link.
         """
-        yield self.ask_choice(pre_text, [link_text])
+        yield self.ask_choice(pre_text, [link_text], new_line_after_question=False)
 
     def say(self, msg):
         """Say something to the client."""
-        d = {"command": "say", "message": msg}
+        d = {"command": "ui.say", "message": msg}
         self.client.send_message(d)
