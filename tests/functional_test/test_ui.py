@@ -64,6 +64,6 @@ class InterfaceTestCase(SeleniumTestCase):
         link = box.find_elements_by_tag_name("a")[0]
         link.click()
 
-        self.assertTrue(future.done)
+        self.assertTrue(future.done())
 
 

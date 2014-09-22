@@ -55,12 +55,10 @@ class UI():
 
         Block until the player clicks on the link.
 
-        todo: Can this be made into a special case of ask_choice?
-
         @param link_text: The text that is clickable.
         @param pre_text: Non-clickable text before the link.
         """
-        yield self.client.query("ui.link", link_text=link_text, pre_text=pre_text)
+        yield self.ask_choice(pre_text, [link_text])
 
     def say(self, msg):
         """Say something to the client."""
