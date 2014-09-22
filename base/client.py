@@ -6,16 +6,15 @@ import pprint
 import logging
 # import json
 # import os
-# from concurrent.futures import Future
 from collections import deque
 
 import tornado.ioloop
+from tornado.concurrent import Future
 
 # import config
 import server
-# import base.interface
-# from base.tools import deprecated
-#
+import base.interface
+
 logger = logging.getLogger(__name__)
 
 
@@ -164,27 +163,19 @@ class Client:
         self.is_admin = False
 #         self.is_registered = False
 #         self._registration_identifier = None
-#
-#
+
         self.last_activity = time.time()
 
         self.messages = MessageQueue()
-#         self._next_query_id = 1
-#         self.sent_queries = {}          # todo: remove when send_query is removed
-        self._queries = {}              # holds futures of the coroutine interface
-#
-#         # todo: All UI should be via coroutines.
-#         self.ui = base.interface.BasicUI(self)
-#         self.coroutine_ui = base.interface.CoroutineUI(self)
+        self._next_query_id = 1
+        self._queries = {}
+
+        self.ui = base.interface.UI(self)
 
         self._chat_history = deque(maxlen=10)
 
         self.location = None
-#
-#         # automatically set a user name in DEVTEST instances
-#         if config.DEVTEST:
-#             self.name = "user" + str(self.id)
-#
+
 #     @property
 #     def registration_identifier(self):
 #         return self._registration_identifier
@@ -241,7 +232,7 @@ class Client:
 #             self.location.leave(self)
 #         self.send_message({"command": "quit", "reason": reason})
 #         del BY_ID[self.id]
-#
+
     def move_to(self, location):
         """Move the client to a new location."""
         if self.location:
@@ -285,10 +276,8 @@ class Client:
         if self.location:
             self.location.handle_reconnect(self)
 
-#         for id in self.sent_queries:
-#             self.send_message(self.sent_queries[id]["query"])
-#         for id in self._queries:
-#             self.send_message(self._queries[id]["query"])
+        for id_ in self._queries:
+            self.send_message(self._queries[id_]["query"])
         return
 
     def handle_request(self, data):
@@ -303,14 +292,14 @@ class Client:
             command = data["command"]
         except KeyError:
             raise ClientCommunicationError("Request without a command.")
-#
+
 #         if command == "go_to_admin":
 #             import base.admin
 #             if self.is_admin:
 #                 self.move_to(base.admin.location)
 #             #todo: log improper admin access.
 #             return
-#
+
         if not self.location.handle_request(self, command, data):
             raise UnhandledClientRequestError(data["command"])
 
@@ -341,64 +330,46 @@ class Client:
         """Resend all chat messages in `self._chat_history`."""
         [self.send_message(msg) for msg in self._chat_history]
 
-#     def _get_next_query_id(self):
-#         id = self._next_query_id
-#         self._next_query_id += 1
-#         return id
-#
-#     def query(self, command, **kwargs):
-#         """Send a query to the UI that asks for user feedback
-#
-#         :param command: The UI command.
-#         :param kwargs: The parameters to the command.
-#         :return: A future which will receive the response (which is always a dict)
-#         :rtype: Future
-#         """
-#         query = kwargs
-#         query["command"] = command
-#         query["id"] = self._get_next_query_id()
-#         future = Future()
-#         self._queries[query["id"]] = {"query": query, "future": future}
-#         self.send_message(query)
-#         send_all_messages()
-#         return future
-#
-#     @deprecated
-#     def send_query(self, query, callback, params=None):
-#         """Send a query to the UI that asks for user feedback.
-#
-#         This is a legacy interface and should not be used anymore in new code.
-#         Use the coroutinified `query()` instead.
-#
-#         :param query: The query to send to the client/user.
-#         :type query: dict
-#         :param callback: The function to call with the reply.
-#         :param params: Additional parameters that are passed to the callback function.
-#         :type params: dict
-#         """
-#         if not params:
-#             params = {}
-#         query["id"] = self._get_next_query_id()
-#         self.sent_queries[query["id"]] = {"query": query, "callback": callback, "params": params}
-#         self.send_message(query)
-#         send_all_messages()
-#
-#     def post_response(self, response):
-#         """Handle a response."""
-#         self.touch()
-#         id = response["id"]
-#         if id in self._queries:
-#             self._queries[id]["future"].set_result(response)
-#             del self._queries[id]
-#         elif id in self.sent_queries:
-#             query = self.sent_queries[response["id"]]
-#             del self.sent_queries[response["id"]]
-#             query["callback"](self, response, **query["params"])
-#         else:
-#             raise ClientCommunicationError(self, response, "Invalid query id.")
-#
+    def _get_next_query_id(self):
+        id_ = self._next_query_id
+        self._next_query_id += 1
+        return id_
+
+    def query(self, command, **kwargs):
+        """
+        Send a query to the UI that asks for user feedback.
+
+        This function returns a Future, that will receive the response when the query completes.
+        This future is intended to be `yield`ed from a coroutine.
+
+        :param command: The UI command.
+        :param kwargs: The parameters to the command.
+        :return: A future which will receive the response (which is always a dict).
+        :rtype: Future
+        """
+        query = kwargs
+        query["command"] = command
+        query["id"] = self._get_next_query_id()
+        future = Future()
+        self._queries[query["id"]] = {"query": query, "future": future}
+        self.send_message(query)
+        return future
+
+    def post_response(self, response):
+        """Handle a response."""
+        self.touch()
+        id_ = int(response["id"])
+        try:
+            self._queries[id_]["future"].set_result(response)
+            del self._queries[id_]
+        except KeyError:
+            raise ClientCommunicationError(self, response, "Invalid query id.")
+
     def cancel_interactions(self, exception=None):
-        """Stop all current interactions.
+        """
+        Stop all current interactions.
+
+        todo: always throw an exception into waiting queries.
 
         :param exception: Exception to pass to all waiting functions (in the coroutine interface).
         :type exception: Exception

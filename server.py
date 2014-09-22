@@ -93,22 +93,26 @@ class ClientRequestHandler(BaseHandler):
             raise
 
 
-# class ClientResponseHandler(BaseHandler):
-#     """The client sends a response."""
-#     @tornado.web.authenticated
-#     def post(self):
-#         try:
-#             response = json.loads(self.request.body.decode())
-#             if logger.isEnabledFor(logging.DEBUG):
-#                 logger.debug("Got response: {}.".format(response))
-#             self.current_user.post_response(response)
-#             self.set_status(202)
-#             self.write("OK")
-#         except Exception as e:
-#             self.current_user.notify_of_exception(e)
-#             raise
-#         finally:
-#             base.client.send_all_messages()
+class ClientResponseHandler(BaseHandler):
+    """The client sends a response."""
+    @tornado.web.authenticated
+    def post(self):
+        session_id = int(self.get_query_argument("session_id"))
+        if session_id != self.current_user.session_id:
+            self.send_error(409)
+            return
+
+        try:
+            response = json.loads(self.request.body.decode())
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Got response: {}.".format(response))
+            self.current_user.post_response(response)
+            self.set_status(202)
+            self.write("OK")
+        except Exception as e:
+            self.current_user.notify_of_exception(e)
+            # todo: Be a bit smarter about which exceptions to re-raise and which to just log or ignore.
+            raise
 
 
 class StartHandler(BaseHandler):
@@ -240,7 +244,7 @@ _application = tornado.web.Application(
     [
         (r"/poll.*", PollHandler),
         (r"/request.*", ClientRequestHandler),
-#         (r"/response.*", ClientResponseHandler),
+        (r"/response.*", ClientResponseHandler),
         (r"/[0-9]*", StartHandler),
 #         (r"/set_access_code", AccessCodeHandler),
         (r"/login(.*)", LoginHandler),
