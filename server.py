@@ -277,6 +277,8 @@ class Server:
         logger.debug("Starting the server.")
         self.clients = base.client.ClientManager()
         self.locations = base.locations.LocationManager()
+        for game in self.games.values():
+            game["lobby"] = game["lobby_class"]()
         self.started = True
 #         self.sweeper.start()
         tornado.ioloop.IOLoop.instance().start()
@@ -301,7 +303,7 @@ class Server:
 
     def add_game_info(self, name, info):
             assert "name" in info, "INFO not set correctly for {}".format(name)
-            assert "lobby" in info, "INFO not set correctly for {}".format(name)
+            assert "lobby_class" in info, "INFO not set correctly for {}".format(name)
             self.games[name] = info
 
 

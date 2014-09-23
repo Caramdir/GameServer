@@ -3,7 +3,7 @@
 # from tornado import gen
 #
 # from base.client import ClientCommunicationError
-# import base.lobby
+import games.lobby
 # from games.base.game import TurnBasedGame, StatePlayer
 # from games.base.log import TurnLog, GameLogEntry, PlayerLogEntry
 # import games.base.cards
@@ -290,22 +290,23 @@
 #         """Draw a card and the end of a trick."""
 #         if not self.game.closed and (self.game.deck or self.game.open_card):
 #             self.draw(1)
-#
-#
-# class Lobby(base.lobby.GameLobby):
-#     def __init__(self):
-#         super().__init__("schnapsen", 2, 2, PlayerGameProposal, AutoMatcher)
-#
-#
-# class BaseGameProposal(base.lobby.BaseGameProposal):
-#     def _start_game(self):
+
+
+class Lobby(games.lobby.Lobby):
+    def __init__(self):
+        super().__init__("schnapsen", 2, 2, PlayerGameProposal)
+
+
+class BaseGameProposal(games.lobby.GameProposal):
+    def _start_game(self):
+        pass
 #         Game(self.clients)
-#
-#
-# class PlayerGameProposal(BaseGameProposal, base.lobby.PlayerGameProposal):
-#     pass
-#
-#
+
+
+class PlayerGameProposal(BaseGameProposal, games.lobby.PlayerCreatedProposal):
+    pass
+
+
 # class AutomatchGameProposal(BaseGameProposal, base.lobby.AutomatchGameProposal):
 #     pass
 #

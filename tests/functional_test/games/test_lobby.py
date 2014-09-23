@@ -15,11 +15,15 @@ class DummyProposal(games.lobby.PlayerCreatedProposal):
             self.lobby.leave(client)
 
 
+class DummyLobby(games.lobby.Lobby):
+    def __init__(self):
+        super().__init__("dummy", 2, 2, DummyProposal)
+
 server.get_instance().add_game_info(
     "dummy",
     {
         "name": "Dummy Game",
-        "lobby": games.lobby.Lobby("dummy", 2, 2, DummyProposal)
+        "lobby_class": DummyLobby
     }
 )
 
