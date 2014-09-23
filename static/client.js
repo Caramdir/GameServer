@@ -565,17 +565,17 @@ games.lobby = function () {
 	};
 
     var player_cell_clicked = function() {
-//        var num = $('input[name="players_radio"]:checked').length + 1;
-//        if (num < min_players || num > max_players) {
-//            $("#lobby_propose_button").prop('disabled', true);
-//        } else {
-//            $("#lobby_propose_button").prop('disabled', false);
-//        }
-//        if (games[current_game].lobby && games[current_game].lobby.on_player_cell_clicked) {
-//            games[current_game].lobby.on_player_cell_clicked(num);
-//        }
+        var num = $('input[name="players_radio"]:checked').length + 1;
+        if (num < min_players || num > max_players) {
+            $("#lobby_propose_button").prop('disabled', true);
+        } else {
+            $("#lobby_propose_button").prop('disabled', false);
+        }
+        if (games[lobby.current] && games[lobby.current].lobby && games[lobby.current].lobby.on_player_cell_clicked) {
+            games[lobby.current].lobby.on_player_cell_clicked(num);
+        }
     };
-/*
+
 	var propose_game = function() {
 		var players = $('input[name="players_radio"]:checked');
 		var id_list = [];
@@ -588,9 +588,9 @@ games.lobby = function () {
             }
         );
 
-		send_request({command : "lobby.propose_game", players : id_list, options: options});
+		send_request({command : "games.lobby.propose_game", players : id_list, options: options});
 	};
-*/
+
 	var layout = [];
 
 	return {

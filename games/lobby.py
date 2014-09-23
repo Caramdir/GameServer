@@ -92,7 +92,7 @@ class GameProposal():
 
         :type client: base.client.Client
         """
-        with (yield self.lobby.proposal_locks[client].aquire()):
+        with (yield self.lobby.proposal_locks[client].acquire()):
             self.invited.add(client)
             try:
                 result = yield client.ui.ask_yes_no(
@@ -119,7 +119,7 @@ class GameProposal():
 
     def _get_multiplayer_prompt(self, client):
         return "Do you want to start a game with {players}?".format(
-            players=english_join_list([c.html for c in self.clients if c != client])
+            players=english_join_list([str(c) for c in self.clients if c != client])
         )
 
     @coroutine
@@ -141,15 +141,14 @@ class GameProposal():
             self._start_game()
 
         else:
-            for c in self.clients:
-                if c == client:
-                    try:
-                        yield c.ui.link("Cancel", self.decline, pre_text="You accept.")
-                        self.decline(client)
-                    except GameStartingFlag:
-                        pass
-                elif c in self.invited:
-                    c.ui.say(client.html + " accepts.")
+            for c in self.invited:
+                if c != client:
+                    c.ui.say("{} accepts.".format(client))
+            try:
+                yield client.ui.link("Cancel", pre_text="You accept.")
+                self.decline(client)
+            except GameStartingFlag:
+                pass
 
     def decline(self, client):
         """
@@ -164,7 +163,7 @@ class GameProposal():
                     c.ui.say("You decline.")
                 else:
                     c.cancel_interactions(ClientDeclinedFlag(client))
-                    c.ui.say(client.html + " declines.")
+                    c.ui.say("{} declines.".format(client))
 
     def client_left_lobby(self, client):
         """
@@ -425,9 +424,9 @@ class Lobby(base.locations.Lobby):
     def handle_request(self, client, command, data):
         """
         Possible commands:
-          * lobby.propose_game: Propose to start a game with some other players.
+          * games.lobby.propose_game: Propose to start a game with some other players.
         """
-        if command == "lobby.propose_game":
+        if command == "games.lobby.propose_game":
             self.propose_game(client, data["players"], data["options"])
             return True
 

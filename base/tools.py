@@ -1,36 +1,36 @@
-import warnings
-import functools
-import traceback
-import tornado.template
-import os
-
-from config import template_path
-
-
-def deprecated(func):
-    """This is a decorator which can be used to mark functions
-    as deprecated. It will result in a warning being emitted
-    when the function is used."""
-
-    @functools.wraps(func)
-    def new_func(*args, **kwargs):
-        warnings.warn_explicit(
-            "Call to deprecated function {} from {}.".format(func.__name__, traceback.extract_stack()[-2]),
-            category=DeprecationWarning,
-            filename=func.__code__.co_filename,
-            lineno=func.__code__.co_firstlineno + 1
-        )
-        return func(*args, **kwargs)
-    return new_func
-
-
-def trace(func):
-    """This decorator simply prints when a function is called."""
-    @functools.wraps(func)
-    def new_func(*args, **kwargs):
-        print("Call to {} from {}".format(func.__name__, traceback.extract_stack()[-2]))
-        return func(*args, **kwargs)
-    return new_func
+# import warnings
+# import functools
+# import traceback
+# import tornado.template
+# import os
+#
+# from config import template_path
+#
+#
+# def deprecated(func):
+#     """This is a decorator which can be used to mark functions
+#     as deprecated. It will result in a warning being emitted
+#     when the function is used."""
+#
+#     @functools.wraps(func)
+#     def new_func(*args, **kwargs):
+#         warnings.warn_explicit(
+#             "Call to deprecated function {} from {}.".format(func.__name__, traceback.extract_stack()[-2]),
+#             category=DeprecationWarning,
+#             filename=func.__code__.co_filename,
+#             lineno=func.__code__.co_firstlineno + 1
+#         )
+#         return func(*args, **kwargs)
+#     return new_func
+#
+#
+# def trace(func):
+#     """This decorator simply prints when a function is called."""
+#     @functools.wraps(func)
+#     def new_func(*args, **kwargs):
+#         print("Call to {} from {}".format(func.__name__, traceback.extract_stack()[-2]))
+#         return func(*args, **kwargs)
+#     return new_func
 
 
 def english_join_list(l):
@@ -70,10 +70,10 @@ def a_or_number(num, a="a"):
         return num
 
 
-template_loader = tornado.template.Loader(template_path)
-
-
-def ensure_symlink(source, name):
-    if os.path.isfile(name):
-        os.remove(name)
-    os.symlink(source, name)
+# template_loader = tornado.template.Loader(template_path)
+#
+#
+# def ensure_symlink(source, name):
+#     if os.path.isfile(name):
+#         os.remove(name)
+#     os.symlink(source, name)

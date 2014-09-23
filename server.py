@@ -297,9 +297,12 @@ class Server:
     def add_game(self, name):
         if not name in self.games:
             module = importlib.import_module("games." + name)
-            assert "name" in module.INFO, "INFO not set correctly for {}".format(name)
-            assert "lobby" in module.INFO, "INFO not set correctly for {}".format(name)
-            self.games[name] = module.INFO
+            self.add_game_info(name, module.INFO)
+
+    def add_game_info(self, name, info):
+            assert "name" in info, "INFO not set correctly for {}".format(name)
+            assert "lobby" in info, "INFO not set correctly for {}".format(name)
+            self.games[name] = info
 
 
 _instance = None
