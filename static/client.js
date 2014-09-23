@@ -598,7 +598,7 @@ games.lobby = function () {
 			min_players = params["min_players"];
 			max_players = params["max_players"];
 
-            loader.css("/static/" + params.this_game + "/game.css");
+            // loader.css("/static/" + params.this_game + "/game.css");
             // $("#automatch").hide();
 
             $("#lobby_propose_form").submit(function() {return false;});

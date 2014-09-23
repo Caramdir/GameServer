@@ -235,6 +235,9 @@ class Client:
     def __str__(self):
         return self.html_name
 
+    def __repr__(self):
+        return "<Client: {} ({})>".format(self.id, str(self))
+
 #     def quit(self, reason=""):
 #         """The client disconnects or is disconnected.
 #

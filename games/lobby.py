@@ -34,6 +34,7 @@ class GameProposal():
         self.options = {}
         self.accepted = set()
         self.is_accepted = False
+        self.is_declined = False
         self.invited = set()    # Clients who have already been invited.
                                 # We need this so that non-invited clients don't get a cancellation notice.
 #         self._validate_and_set_options(options)
@@ -93,6 +94,8 @@ class GameProposal():
         :type client: base.client.Client
         """
         with (yield self.lobby.proposal_locks[client].acquire()):
+            if self.is_declined:
+                return
             self.invited.add(client)
             try:
                 result = yield client.ui.ask_yes_no(
@@ -157,6 +160,7 @@ class GameProposal():
         :param client: The declining client.
         :type client: base.client.Client
         """
+        self.is_declined = True
         for c in self.clients:
             if c in self.invited:
                 if c == client:
@@ -406,7 +410,7 @@ class Lobby(base.locations.Lobby):
     def leave(self, client, reason=None):
         for proposal in self.proposals:
             proposal.client_left_lobby(client)
-            del self.proposal_locks[client]
+        del self.proposal_locks[client]
         # self.automatcher.client_leaves_lobby(client)
 
         super().leave(client, reason)
