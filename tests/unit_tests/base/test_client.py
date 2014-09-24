@@ -66,7 +66,7 @@ class ClientManagerTestCase(TestCase):
             self.cm.get_by_name("ham")
 
 
-class ClientTestCase(TestCase):
+class ClientTestCase(AsyncTestCase):
     def test_id(self):
         c = base.client.Client(123, "bar")
 
@@ -133,6 +133,47 @@ class ClientTestCase(TestCase):
             call({"foo": "bar"}),
             call({"x": "y"}),
         ])
+
+    @gen_test
+    def test_query(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+
+        f = c.query("a_command", param1="foo", param2="bar")
+
+        self.assertEqual("a_command", c.send_message.call_args[0][0]["command"])
+        self.assertEqual("foo", c.send_message.call_args[0][0]["param1"])
+        self.assertEqual("bar", c.send_message.call_args[0][0]["param2"])
+
+        id_ = c.send_message.call_args[0][0]["id"]
+        c.post_response({"id": id_, "foo": "bar"})
+        r = yield f
+
+        self.assertEqual({"id": id_, "foo": "bar"}, r)
+
+    @gen_test
+    def test_cancel_interactions(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+
+        f = c.query("a_command", param1="foo", param2="bar")
+        c.cancel_interactions()
+
+        with self.assertRaises(base.client.InteractionCancelledException):
+            yield f
+
+    @gen_test
+    def test_cancel_interactions_custom(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+
+        f = c.query("a_command", param1="foo", param2="bar")
+        e = Exception()
+        c.cancel_interactions(e)
+
+        with self.assertRaises(Exception) as cm:
+            yield f
+        self.assertEqual(e, cm.exception)
 
 
 class MessageQueueTestCase(AsyncTestCase):

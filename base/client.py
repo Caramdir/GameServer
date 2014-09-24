@@ -389,10 +389,12 @@ class Client:
         :param exception: Exception to pass to all waiting functions (in the coroutine interface).
         :type exception: Exception
         """
-        if exception:
-            assert isinstance(exception, Exception)
-            for query in self._queries.values():
-                query["future"].set_exception(exception)
+        if exception is None:
+            exception = InteractionCancelledException()
+
+        assert isinstance(exception, Exception)
+        for query in self._queries.values():
+            query["future"].set_exception(exception)
 
         self._queries = {}
         self.send_message({"command": "cancel_interactions"})
@@ -406,6 +408,10 @@ class Client:
         """
         if self.location:
             self.location.notify_of_exception(e)
+
+
+class InteractionCancelledException(Exception):
+    pass
 
 
 # class NullClient():
