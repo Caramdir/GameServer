@@ -2,7 +2,7 @@ import hashlib
 import time
 import os
 
-from config import game_log_path
+from configuration import config
 import base.tools
 
 
@@ -24,7 +24,7 @@ class LogEntry():
         """Add indentation and reason to the message."""
         message = ("... " * self.indentation) + message
         if self.reason:
-            message += " [" + self.reason + "]"
+            message += " [{}]".format(self.reason)
         return message
 
 
@@ -129,7 +129,8 @@ class Log:
         self.add_entry(SimpleLogEntry(""))
 
     def send_entry(self, player, entry):
-        """Send an entry to a clients.
+        """
+        Send an entry to a clients.
 
         :param player: The player representing the client who should get sent the entry.
         :type player: AbstractPlayer
@@ -175,14 +176,14 @@ class Log:
         """Render the log to a file.
 
         :param player: Write the log for this player (None to get the full log).
-        :param game: Short identifier of the game. Used as prefix for the file name and as wrapping class in the html file.
+        :param game: Identifier of the game. Used as prefix for the file name and as wrapping class in the html file.
         :return: name of the file where the log was stored.
         :rtype : str
         """
         filename = game + "_" + hashlib.sha1(str(time.clock()).encode()).hexdigest() + ".html"
         entries = "\n".join([entry.get_message(player) for entry in self.entries])
         t = base.tools.template_loader.load(template)
-        with open(os.path.join(game_log_path, filename), 'wb') as file:
+        with open(os.path.join(config["game_log_path"], filename), 'wb') as file:
             file.write(t.generate(entries=entries, game=game))
         return filename
 
@@ -284,7 +285,10 @@ class SimultaneousLog(TurnLog):
                 "command": "log.start_simultaneous",
                 "player_ids": [p.client.id for p in self.players]}
             )
-            [self.send_entry(player, entry) for p in self.simultaneous_entries for entry in self.simultaneous_entries[p]]
+            [self.send_entry(player, entry)
+             for p in self.simultaneous_entries
+             for entry in self.simultaneous_entries[p]
+            ]
 
 
 class PlayerLogFacade:
@@ -324,9 +328,21 @@ class PlayerLogFacade:
             ))
         else:
             self.add_entry(PlayerLogEntry(
-                message.format(Player="You", player="you", s="", es="", has="have"),
-                message.format(Player=self.player.html, player=self.player.html, s="s", es="es", has="has"),
-                message_other_tmp=message_other_tmp.format(Player=self.player.html, player=self.player.html, s="s", es="es", has="has"),
+                message.format(
+                    Player="You",
+                    player="you",
+                    s="", es="", has="have",
+                ),
+                message.format(
+                    Player=self.player.html,
+                    player=self.player.html,
+                    s="s", es="es", has="has",
+                ),
+                message_other_tmp=message_other_tmp.format(
+                    Player=self.player.html,
+                    player=self.player.html,
+                    s="s", es="es", has="has",
+                ),
                 reason=reason
             ))
 

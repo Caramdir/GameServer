@@ -1,12 +1,13 @@
 # import warnings
 # import functools
 # import traceback
-# import tornado.template
 # import os
-#
-# from config import template_path
-#
-#
+
+import tornado.template
+
+from configuration import config
+
+
 # def deprecated(func):
 #     """This is a decorator which can be used to mark functions
 #     as deprecated. It will result in a warning being emitted
@@ -70,9 +71,9 @@ def a_or_number(num, a="a"):
         return num
 
 
-# template_loader = tornado.template.Loader(template_path)
-#
-#
+template_loader = tornado.template.Loader(config["template_path"])
+
+
 # def ensure_symlink(source, name):
 #     if os.path.isfile(name):
 #         os.remove(name)
