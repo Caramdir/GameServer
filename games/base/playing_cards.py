@@ -7,11 +7,10 @@ class Suit:
         self.symbol = symbol
         self.color = color
 
-    def __str__(self):
-        return self.symbol
+    def __repr__(self):
+        return "<" + self.symbol + ">"
 
-    @property
-    def html(self):
+    def __str__(self):
         return """<span class="suit-{color}">{suit}</span>""".format(
             color=self.color,
             suit=self.symbol)
@@ -54,15 +53,15 @@ class Card(games.base.cards.Card):
         else:
             return self.rank
 
-    def __str__(self):
-        return "{} of {}".format(self.rank, self.suit)
+    def __repr__(self):
+        return "<{} of {}>".format(self.rank, self.suit)
 
-    @property
-    def html(self):
+    def __str__(self):
         return """<span class="card suit-{color}" id="{id}">{symbol}</span>""".format(
             color=self.suit.color,
             symbol=UNICODE[self.suit.symbol][self.rank],
-            id=self.id)
+            id=self.id,
+        )
 
     def __eq__(self, other):
         assert type(other) is Card, "other is not a card."
@@ -72,22 +71,26 @@ class Card(games.base.cards.Card):
         return not self.__eq__(other)
 
 
-def get_deck(type, values={}, game=None, deck_class=games.base.cards.Deck):
-    """Get a deck of playing cards of the specified type.
+def get_cards(type_, values=None):
+    """
+    Get a list of playing cards of the specified type.
 
     Currently supported types:
     * 20: Cards 10, J, Q, K, A
     """
-    if type != 20:
-        raise ValueError("Unsupported deck type {}.".format(type))
+    if not values:
+        values = {}
 
-    deck = deck_class(game)
+    if type_ != 20:
+        raise ValueError("Unsupported deck type {}.".format(type_))
+
+    cards = []
     ranks = ["10", "J", "Q", "K", "A"]
     for suit in SUITS:
         for rank in ranks:
             card = Card(rank, suit)
             if rank in values:
                 card.value = values[rank]
-            deck.append(card)
+            cards.append(card)
 
-    return deck
+    return cards
