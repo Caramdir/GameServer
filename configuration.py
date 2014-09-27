@@ -83,23 +83,7 @@ def add_override(o):
 # Use a localconfig.py file to override setting without having to change this file.
 #
 
-#if os.path.isfile("localconfig.py"):
-#    import localconfig
-
-
-#
-# We need a global variable to hold a reference to all the games.
-#
-
-GAMES = {}
-
-# Beware: The following imports will pull almost everything. Hence anything defined below will not
-# be available in most modules.
-
-#from games import schnapsen
-
-#GAMES["schnapsen"] = schnapsen.INFO
-
-# This game is selected by default in the registration page. Set to None if no default should be set.
-#default_game = "schnapsen"
+if os.path.isfile("localconfig.py"):
+    add_override({})
+    import localconfig
 
