@@ -420,7 +420,10 @@ class Lobby(base.locations.Lobby):
     def leave(self, client, reason=None):
         for proposal in self.proposals:
             proposal.client_left_lobby(client)
-        del self.proposal_locks[client]
+        try:
+            del self.proposal_locks[client]
+        except KeyError:
+            pass
         # self.automatcher.client_leaves_lobby(client)
 
         super().leave(client, reason)
