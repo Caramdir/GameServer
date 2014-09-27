@@ -66,6 +66,10 @@ config = ConfigChainMap(dict(
     # Used for secure cookies
     cookie_secret=binascii.hexlify(os.urandom(32)).decode(),
 
+    # JQuery locations
+    jquery="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js",
+    jqueryui_js="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js",
+    jqueryui_css="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css",
 
     # In DEVTEST instances, skip the name entering page on login and automatically create a user name.
     #devtest_direct_login = False,
@@ -83,7 +87,7 @@ def add_override(o):
 # Use a localconfig.py file to override setting without having to change this file.
 #
 
-if os.path.isfile("localconfig.py"):
+if os.path.isfile(os.path.join(os.path.dirname(__file__), "localconfig.py")):
     add_override({})
     import localconfig
 

@@ -138,6 +138,7 @@ class StartHandler(BaseHandler):
                     client=self.current_user,
                     #devtest=config.DEVTEST,
                     devtest=False,
+                    config=config,
                     )
 
 

@@ -2,9 +2,9 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css" />
+        <script src="{{ config['jquery'] }}"></script>
+        <script src="{{ config['jqueryui_js'] }}"></script>
+        <link rel="stylesheet" href="{{ config['jqueryui_css'] }}" />
         <script>
             var session_id = {{ client.session_id }};
         </script>
