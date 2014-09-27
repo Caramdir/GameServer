@@ -1,12 +1,10 @@
-# import random
-#
 from tornado.gen import coroutine
 #
 # from base.client import ClientCommunicationError
 import games.lobby
 import games.base.game
 from games.base.game import CheaterException, EndGameException
-from games.base.log import TurnLog, GameLogEntry, PlayerLogEntry
+from games.base.log import TurnLog, GameLogEntry
 import games.base.cards
 import games.base.playing_cards
 from games.base.playing_cards import Card, SUITS
@@ -76,7 +74,7 @@ class Deck(games.base.cards.Deck):
 class Game(games.base.game.Game):
     def __init__(self, clients):
         assert len(clients) == 2, "Must have exactly two players."
-        super().__init__("schnapsen", clients, Player)
+        super().__init__("schnapsen", clients)
         self.log = TurnLog(self.players)
 
         self.deck = Deck(
@@ -90,6 +88,9 @@ class Game(games.base.game.Game):
         self._current_card = None
 
         self.start(self.run)
+
+    def create_player(self, client):
+        return Player(client, self)
 
     @property
     def current_card(self):
@@ -352,9 +353,8 @@ class Lobby(games.lobby.Lobby):
 
 
 class BaseGameProposal(games.lobby.GameProposal):
-    def _start_game(self):
-        Game(self.clients)
-        # todo: this should be stored somewhere
+    def _create_game(self):
+        return Game(self.clients)
 
 
 class PlayerGameProposal(BaseGameProposal, games.lobby.PlayerCreatedProposal):

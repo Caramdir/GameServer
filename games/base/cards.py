@@ -25,8 +25,7 @@ class Card:
     def _on_location_change(self):
         pass
 
-    @property
-    def html(self):
+    def __str__(self):
         raise NotImplementedError()
 
 
@@ -240,19 +239,19 @@ class Hand(PlayerRelatedCardCollection, LocationCardCollection):
         else:
             amount = len(discarded_cards)
             plural = plural_s(amount)
-            cards = english_join_list([card.html for card in discarded_cards])
+            cards = english_join_list([str(card) for card in discarded_cards])
 
             if self.player.log.indentation == 0:
                 self.player.log.add_entry(PlayerLogEntry(
                     "You discard " + cards + ".",
-                    "{name} discards {amount} card{s}.".format(name=self.player.html, amount=amount, s=plural),
-                    self.player.html + " discards " + cards + ".",
+                    "{name} discards {amount} card{s}.".format(name=self.player, amount=amount, s=plural),
+                    str(self.player) + " discards " + cards + ".",
                     reason=reason
                 ))
             else:
                 self.player.log.add_entry(PlayerLogEntry(
                     "discarding " + cards + ".",
-                    "discarding {amount} card{s}.".format(name=self.player.html, amount=amount, s=plural),
+                    "discarding {amount} card{s}.".format(name=self.player, amount=amount, s=plural),
                     "discarding " + cards + ".",
                     reason=reason
                 ))
@@ -318,19 +317,19 @@ class Deck(LocationCardCollection):
     def log_draw(self, player, cards, reason):
         if player.log.indentation == 0:
             player.log.add_entry(PlayerLogEntry(
-                "You draw " + english_join_list([card.html for card in cards]) + ".",
+                "You draw " + english_join_list([str(card) for card in cards]) + ".",
                 "{name} draws {amount} card{s}.".format(
-                    name=player.html,
+                    name=player,
                     amount=a_or_number(len(cards)),
                     s=plural_s(len(cards))),
-                player.html + " draws " + english_join_list([card.html for card in cards]) + ".",
+                str(player) + " draws " + english_join_list([str(card) for card in cards]) + ".",
                 reason=reason
             ))
         else:
             player.log.add_entry(PlayerLogEntry(
-                "drawing " + english_join_list([card.html for card in cards]) + ".",
+                "drawing " + english_join_list([str(card) for card in cards]) + ".",
                 "drawing {amount} card{s}.".format(amount=a_or_number(len(cards)), s=plural_s(len(cards))),
-                "drawing " + english_join_list([card.html for card in cards]) + ".",
+                "drawing " + english_join_list([str(card) for card in cards]) + ".",
                 reason=reason
             ))
 

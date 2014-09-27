@@ -35,7 +35,6 @@ class LiveTestCase(unittest.TestCase):
         tornado.ioloop.IOLoop.instance().add_callback(server.get_instance().stop)
         self._server_thread.join()
         server.get_instance().reset()
-        # todo: reset changed config settings
 
 
 class SeleniumTestCase(LiveTestCase):

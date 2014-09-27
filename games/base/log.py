@@ -323,7 +323,7 @@ class PlayerLogFacade:
         if message_other_tmp is None:
             self.add_entry(PlayerLogEntry(
                 message.format(Player="You", player="you", s="", es="", has="have"),
-                message.format(Player=self.player.html, player=self.player.html, s="s", es="es", has="has"),
+                message.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has"),
                 reason=reason
             ))
         else:
@@ -334,13 +334,13 @@ class PlayerLogFacade:
                     s="", es="", has="have",
                 ),
                 message.format(
-                    Player=self.player.html,
-                    player=self.player.html,
+                    Player=str(self.player),
+                    player=str(self.player),
                     s="s", es="es", has="has",
                 ),
                 message_other_tmp=message_other_tmp.format(
-                    Player=self.player.html,
-                    player=self.player.html,
+                    Player=str(self.player),
+                    player=str(self.player),
                     s="s", es="es", has="has",
                 ),
                 reason=reason

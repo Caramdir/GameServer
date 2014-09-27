@@ -77,7 +77,7 @@ config = ConfigChainMap(dict(
 
 def add_override(o):
     global config
-    config = config.maps.insert(0, o)
+    config.maps.insert(0, o)
 
 #
 # Use a localconfig.py file to override setting without having to change this file.

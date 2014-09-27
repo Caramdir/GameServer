@@ -51,6 +51,8 @@ class Location:
     def leave(self, client, reason=None):
         """Remove a client from the location"""
         self.clients.remove(client)
+        if not self.clients:
+            self.on_last_client_leaves()
 
     def handle_request(self, client, command, data):
         """
@@ -128,6 +130,9 @@ class Location:
         if e:
             self.notify_of_exception(e)
             raise e
+
+    def on_last_client_leaves(self):
+        pass
 
 
 class Lobby(Location):

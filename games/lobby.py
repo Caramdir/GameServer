@@ -183,7 +183,16 @@ class GameProposal():
                 self.decline(client)
 
     def _start_game(self):
-        """Game implementations have to override this."""
+        self.lobby.games.add(self._create_game())
+
+    def _create_game(self):
+        """
+        Create the game.
+
+        Game implementations have to override this.
+
+        :return: The game object.
+        """
         raise NotImplementedError()
 
     def handle_reconnect(self, client):
@@ -385,6 +394,7 @@ class Lobby(base.locations.Lobby):
         # self.automatcher = automatcher(self)
         self.proposals = set()
         self.proposal_locks = defaultdict(toro.Lock)
+        self.games = set()
 
     def join(self, client):
         """Announce to everyone that the client joined and send it the init command.

@@ -5,6 +5,7 @@ Base classes for games.
 import random
 import logging
 
+import server
 import base.locations
 import games.base.log
 from games.base.log import PlayerLogFacade, GameLogEntry
@@ -111,17 +112,15 @@ class EndGameException(Exception):
 
 
 class Game(base.locations.Location):
-    def __init__(self, game_identifier, clients, player_class):
+    def __init__(self, game_identifier, clients):
         """
         Initialize the game.
 
         :param game_identifier: The module name of the game.
         :param clients: The players.
-        :param player_class: A subclass of Player (matching the implementation).
         """
-        super().__init__(clients)
-
-        self.players = [self.create_player(c) for c in self.clients]
+        super().__init__()
+        self.players = [self.create_player(c) for c in clients]
         random.shuffle(self.players)
         self.all_players = self.players.copy()  # Resigned players will be removed from self.players,
                                                 # but stay in self.all_players
@@ -238,3 +237,10 @@ class Game(base.locations.Location):
         """
         handled = super().handle_request(client, command, data)
         return self.get_player_by_client(client).handle_request(client, command, data) or handled
+
+    def on_last_client_leaves(self):
+        lobby = server.get_instance().games[self.game_identifier]["lobby"]
+        try:
+            lobby.games.remove(self)
+        except KeyError:
+            logger.debug("Tried to remove a game that has never been added to the lobby.")

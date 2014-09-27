@@ -60,6 +60,17 @@ class LocationTestCase(unittest.TestCase):
         self.assertFalse(ret)
         self.assertFalse(c.send_chat_message.called)
 
+    def test_on_last_client_leaves(self):
+        c1, c2 = Mock(), Mock()
+        l = base.locations.Location({c1, c2})
+        l.on_last_client_leaves = Mock()
+
+        l.leave(c1)
+        self.assertFalse(l.on_last_client_leaves.called)
+
+        l.leave(c2)
+        l.on_last_client_leaves.assert_called_once_with()
+
 
 if __name__ == '__main__':
     unittest.main()
