@@ -571,8 +571,8 @@ games.lobby = function () {
         } else {
             $("#lobby_propose_button").prop('disabled', false);
         }
-        if (games[lobby.current] && games[lobby.current].lobby && games[lobby.current].lobby.on_player_cell_clicked) {
-            games[lobby.current].lobby.on_player_cell_clicked(num);
+        if (games.lobby.game_specific_lobby.on_player_cell_clicked) {
+            games.lobby.game_specific_lobby.on_player_cell_clicked(num);
         }
     };
 
@@ -594,12 +594,14 @@ games.lobby = function () {
 	var layout = [];
 
 	return {
+        game_specific_lobby : {},
+
 		init : function(params) {
 			min_players = params["min_players"];
 			max_players = params["max_players"];
 
-            // loader.css("/static/" + params.this_game + "/game.css");
-            // $("#automatch").hide();
+            loader.css("/static/" + lobby.current + "/game.css");
+            $("#automatch").hide();
 
             $("#lobby_propose_form").submit(function() {return false;});
             $("#lobby_propose_button").click(function() { propose_game(); return false; });
@@ -615,20 +617,17 @@ games.lobby = function () {
                 }
             }
 
-            /*
-            loader.script("/static/" + params.this_game + "/game.js",
+            games.lobby.game_specific_lobby = {};
+            loader.script("/static/" + lobby.current + "/game.js",
                 function() {
-                    if (games[current_game].lobby) {
-                        lobby.game_lobby = games[current_game].lobby
-                    } else {
-                        lobby.game_lobby = {}
+                    if (games[lobby.current].lobby) {
+                        games.lobby.game_specific_lobby = games[lobby.current].lobby
                     }
-                    if (lobby.game_lobby.init) {
-                        lobby.game_lobby.init();
+                    if (games.lobby.game_specific_lobby.init) {
+                        games.lobby.game_specific_lobby.init();
                     }
                 }
             );
-            */
 		},
 
 		client_joins : function(params) {
