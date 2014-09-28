@@ -30,12 +30,6 @@ games.schnapsen = function() {
                 deck += '<span class="deck-card card">🂠</span>';
 			}
 			$("#deck").html(deck);
-            $("#current_trick").finish();
-            $("#current_trick").empty();
-            $("#current_trick").show();
-            if (params["current_card"]) {
-                $("#current_trick").append(params["current_card"]);
-            }
         },
 
         update_player_ui : function(params) {
@@ -55,6 +49,18 @@ games.schnapsen = function() {
             container.append("<strong>Taken cards: </strong> ");
             for (var i=0; i < data["taken_cards"].length; i++) {
                 container.append(data["taken_cards"][i]);
+            }
+        },
+
+        card_played : function (params) {
+            if (params["is_lead"]) {
+                $("#current_trick").finish();
+                $("#current_trick").empty();
+                $("#current_trick").show();
+            }
+            $("#current_trick").append(params["card"]);
+            if (!params["is_lead"]) {
+                $("#current_trick").fadeOut(5000);
             }
         },
 

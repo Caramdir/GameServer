@@ -92,15 +92,6 @@ class Game(games.base.game.Game):
     def create_player(self, client):
         return Player(client, self)
 
-    @property
-    def current_card(self):
-        return self._current_card
-
-    @current_card.setter
-    def current_card(self, value):
-        self._current_card = value
-        self.trigger_game_ui_update()
-
     @coroutine
     def run(self):
         lead, follow = self._set_up()
@@ -111,11 +102,13 @@ class Game(games.base.game.Game):
             while self.running:
                 self.log.new_turn()
 
-                self.current_card = lead_card = yield lead.play_card()
+                self._current_card = lead_card = yield lead.play_card()
+                self._send_card_play(lead_card, True)
                 follow_card = yield follow.play_card(lead_card)
+                self._send_card_play(follow_card, False)
 
                 lead, follow = self.evaluate_trick(lead, lead_card, follow, follow_card)
-                self.current_card = None
+                self._current_card = None
 
                 if not lead.hand or lead.points > 65:
                     break
@@ -215,7 +208,6 @@ class Game(games.base.game.Game):
             "command": "games.schnapsen.update_game_ui",
             "trump": str(self.trump),
             "deck_size": len(self.deck),
-            "current_card": str(self.current_card) if self.current_card else None,
             "open_card": str(self.deck.open_card) if self.deck.open_card else None,
         }
 
@@ -224,6 +216,23 @@ class Game(games.base.game.Game):
         client.send_message({
             "command": "games.schnapsen.init",
         })
+
+    def handle_reconnect(self, client):
+        super().handle_reconnect(client)
+        if self._current_card:
+            client.send_message({
+                "command": "games.schnapsen.card_played",
+                "is_lead": True,
+                "card": str(self._current_card)
+            })
+
+    def _send_card_play(self, card, is_lead):
+        for client in self.clients:
+            client.send_message({
+                "command": "games.schnapsen.card_played",
+                "is_lead": is_lead,
+                "card": str(card)
+            })
 
 
 class Player(games.base.game.Player):
