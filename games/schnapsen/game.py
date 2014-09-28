@@ -47,7 +47,7 @@ class Deck(games.base.cards.Deck):
 
         :param player: The player who turns over the trump.
         """
-        assert not self.can_draw
+        assert self.can_draw
         self.closed = True
         self.closing_player = player
         self.game.trigger_game_ui_update()

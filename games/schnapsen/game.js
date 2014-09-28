@@ -17,12 +17,12 @@ games.schnapsen = function() {
 			$(window).resize();
 		},
 
-		update_game_ui : function(data) {
+		update_game_ui : function(params) {
             var deck = "";
-            if (data.deck_size) {
+            if (params["deck_size"]) {
                 deck += '<span class="open-card">';
-				if (data.open_card) {
-					deck += data.open_card;
+				if (params["open_card"]) {
+					deck += params["open_card"];
 				} else {
 					deck += '<span class="card">🂠</span>';
 				}
@@ -33,19 +33,16 @@ games.schnapsen = function() {
             $("#current_trick").finish();
             $("#current_trick").empty();
             $("#current_trick").show();
-            for (var i=0; i<data.current_trick.length; i++) {
-                $("#current_trick").append(data.current_trick[i]);
-            }
-            if (data.current_trick.length == 2) {
-                $("#current_trick").fadeOut(5000);
+            if (params["current_card"]) {
+                $("#current_trick").append(params["current_card"]);
             }
         },
 
-        update_player_ui : function(json) {
+        update_player_ui : function(params) {
 			var h = $("#hand");
 			h.empty();
-			for (var i=0; i<json.hand.length; i++) {
-				h.append($(json.hand[i]));
+			for (var i=0; i<params["hand"].length; i++) {
+				h.append($(params["hand"][i]));
 				h.append("&nbsp;");
 			}
 		},
@@ -53,7 +50,7 @@ games.schnapsen = function() {
         populate_info_box : function(container, data) {
             container.append("<strong>Trump:</strong> " + data["trump"] + "<br/>");
             container.append("<strong>Remaining cards:</strong> " + data["deck_size"]);
-            container.append("<br/><br/>")
+            container.append("<br/><br/>");
             container.append("<strong>Points:</strong> " + data["points"] + "<br/>");
             container.append("<strong>Taken cards: </strong> ");
             for (var i=0; i < data["taken_cards"].length; i++) {
