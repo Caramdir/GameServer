@@ -289,11 +289,11 @@ class Client:
             "games": games,
         })
 
-        self._resend_chat_messages()
-        self._resend_permanent_messages()
-
         if self.location:
             self.location.handle_reconnect(self)
+
+        self._resend_chat_messages()
+        self._resend_permanent_messages()
 
         for id_ in self._queries:
             self.send_message(self._queries[id_]["query"])
