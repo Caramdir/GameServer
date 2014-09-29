@@ -6,6 +6,7 @@ import tornado.ioloop
 import tornado.gen
 
 import base.client
+import base.locations
 
 
 class ClientManagerTestCase(TestCase):
@@ -48,7 +49,7 @@ class ClientManagerTestCase(TestCase):
 
         self.assertIsNone(c.location)
 
-        loc = Mock()
+        loc = base.locations.Location()
         c = self.cm.new("bar", loc)
 
         self.assertEqual(c.location, loc)
@@ -81,19 +82,16 @@ class ClientTestCase(AsyncTestCase):
 
     def test_move_to(self):
         c = base.client.Client(0, "foo")
-        loc1 = Mock()
-        loc2 = Mock()
+        loc1 = base.locations.Location()
+        loc2 = base.locations.Location()
 
         c.move_to(loc1)
 
         self.assertEqual(c.location, loc1)
-        loc1.join.assert_called_once_with(c)
 
         c.move_to(loc2)
 
         self.assertEqual(c.location, loc2)
-        loc1.leave.assert_called_once_with(c)
-        loc2.join.assert_called_once_with(c)
 
     def test_send_message(self):
         c = base.client.Client(0, "foo")

@@ -34,7 +34,9 @@ class Location:
 
     def join(self, client):
         """Add a client to the location."""
+        assert client.location is None, "Client must leave the its current location before joining a new one."
         self.clients.add(client)
+        client.location = self
         self.send_init(client)
 
     def send_init(self, client):
@@ -50,7 +52,9 @@ class Location:
 
     def leave(self, client, reason=None):
         """Remove a client from the location"""
+        assert client.location == self
         self.clients.remove(client)
+        client.location = None
         if not self.clients:
             self.on_last_client_leaves()
 

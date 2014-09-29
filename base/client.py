@@ -7,6 +7,7 @@ import logging
 # import json
 # import os
 from collections import deque
+from unittest.mock import Mock
 
 import tornado.ioloop
 from tornado.concurrent import Future
@@ -252,9 +253,10 @@ class Client:
         """Move the client to a new location."""
         if self.location:
             self.location.leave(self)
-        self.location = location
+        assert self.location is None
         if location:
             location.join(self)
+        assert self.location == location
 
     def touch(self):
         """Sets last_activity to now."""
@@ -412,6 +414,15 @@ class Client:
 
 class InteractionCancelledException(Exception):
     pass
+
+
+class MockClient(Client):
+    def __init__(self, id_=0, name="Mock Client"):
+        super().__init__(id_, name)
+        self.send_message = Mock()
+        self.send_chat_message = Mock()
+        self.query = Mock()
+        self.cancel_interactions = Mock()
 
 
 # class NullClient():
