@@ -28,12 +28,14 @@ class LocationTestCase(unittest.TestCase):
 
     def test_leave(self):
         c1, c2 = MockClient(), MockClient()
+        c1.remove_permanent_messages = Mock()
         l = base.locations.Location({c1, c2})
 
         l.leave(c1)
 
         self.assertEqual(l.clients, {c2})
         self.assertIsNone(c1.location)
+        self.assertTrue(c1.remove_permanent_messages.called)
 
     def test_reconnect(self):
         c = MockClient()

@@ -6,7 +6,7 @@ import pprint
 import logging
 # import json
 # import os
-from collections import deque
+from collections import deque, defaultdict
 from unittest.mock import Mock
 
 import tornado.ioloop
@@ -182,6 +182,7 @@ class Client:
         self.messages = MessageQueue()
         self._next_query_id = 1
         self._queries = {}
+        self._permanent_messages = defaultdict(list)
 
         self.ui = base.interface.UI(self)
 
@@ -289,6 +290,7 @@ class Client:
         })
 
         self._resend_chat_messages()
+        self._resend_permanent_messages()
 
         if self.location:
             self.location.handle_reconnect(self)
@@ -346,6 +348,19 @@ class Client:
     def _resend_chat_messages(self):
         """Resend all chat messages in `self._chat_history`."""
         [self.send_message(msg) for msg in self._chat_history]
+
+    def send_permanent_message(self, group, message):
+        self.send_message(message)
+        self._permanent_messages[group].append(message)
+
+    def remove_permanent_messages(self, group=None):
+        if group is None:
+            self._permanent_messages.clear()
+        else:
+            self._permanent_messages[group].clear()
+
+    def _resend_permanent_messages(self):
+        [self.send_message(msg) for group in self._permanent_messages for msg in self._permanent_messages[group]]
 
     def _get_next_query_id(self):
         id_ = self._next_query_id

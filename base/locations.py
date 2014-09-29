@@ -55,6 +55,7 @@ class Location:
         assert client.location == self
         self.clients.remove(client)
         client.location = None
+        client.remove_permanent_messages()
         if not self.clients:
             self.on_last_client_leaves()
 

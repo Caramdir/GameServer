@@ -173,6 +173,72 @@ class ClientTestCase(AsyncTestCase):
             yield f
         self.assertEqual(e, cm.exception)
 
+    def test_permanent_message_one_group(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+        m1 = {"command": "1"}
+
+        c.send_permanent_message("foo", m1)
+
+        c.send_message.assert_called_once_with(m1)
+        c.send_message.reset_mock()
+
+        c._resend_permanent_messages()
+
+        c.send_message.assert_called_once_with(m1)
+
+    def test_permanent_messages_two_groups(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+        m1 = {"command": "1"}
+        m2 = {"command": "2"}
+        m3 = {"command": "3"}
+
+        c.send_permanent_message("foo", m1)
+        c.send_permanent_message("bar", m2)
+        c.send_permanent_message("foo", m3)
+        c.send_message.reset_mock()
+
+        c._resend_permanent_messages()
+
+        c.send_message.assert_any_call(m1)
+        c.send_message.assert_any_call(m2)
+        c.send_message.assert_any_call(m3)
+
+    def test_permanent_messages_remove_group(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+        m1 = {"command": "1"}
+        m2 = {"command": "2"}
+        m3 = {"command": "3"}
+
+        c.send_permanent_message("foo", m1)
+        c.send_permanent_message("bar", m2)
+        c.send_permanent_message("foo", m3)
+        c.remove_permanent_messages("foo")
+        c.send_message.reset_mock()
+
+        c._resend_permanent_messages()
+
+        c.send_message.assert_called_once_with(m2)
+
+    def test_permanent_messages_remove_all(self):
+        c = base.client.Client(0, "foo")
+        c.send_message = Mock()
+        m1 = {"command": "1"}
+        m2 = {"command": "2"}
+        m3 = {"command": "3"}
+
+        c.send_permanent_message("foo", m1)
+        c.send_permanent_message("bar", m2)
+        c.send_permanent_message("foo", m3)
+        c.remove_permanent_messages()
+        c.send_message.reset_mock()
+
+        c._resend_permanent_messages()
+
+        self.assertFalse(c.send_message.called)
+
 
 class MessageQueueTestCase(AsyncTestCase):
     def setUp(self):
