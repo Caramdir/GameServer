@@ -182,7 +182,7 @@ class Client:
         self.messages = MessageQueue()
         self._next_query_id = 1
         self._queries = {}
-        self._permanent_messages = defaultdict(list)
+        self._permanent_messages = []
 
         self.ui = base.interface.UI(self)
 
@@ -350,17 +350,45 @@ class Client:
         [self.send_message(msg) for msg in self._chat_history]
 
     def send_permanent_message(self, group, message):
+        """
+        Send a message that will be resent on every reconnect.
+
+        The message `message` will be sent to the client on each reconnect/page
+        refresh until it is removed by a call to `remove_permanent_message()`.
+
+        Messages will be resent in the order that they were sent originally.
+
+        The parameter `group` is used to mark messages belonging to the same
+        group. With this it is possible to selectly remove messages belonging
+        to the same group.
+
+        Note that `base.location.Location.leave()` has a call to
+        `remove_permanent_messages()`, so that all permanent messages will be
+        removed whenever the client changes location.
+
+        :param group: The group this message belongs to.
+        :param message: The message to be sent.
+        """
         self.send_message(message)
-        self._permanent_messages[group].append(message)
+        self._permanent_messages.append((group, message))
 
     def remove_permanent_messages(self, group=None):
+        """
+        Remove messages from the list of messages to be resent on each reconnect.
+
+        Only messages of the given `group` are removed, except when `group` is
+        `None`, in which case all messages are removed.
+
+        :param group: The group to be removed, or `None` to remove all messages.
+        """
         if group is None:
             self._permanent_messages.clear()
         else:
-            self._permanent_messages[group].clear()
+            self._permanent_messages = [entry for entry in self._permanent_messages if entry[0] != group]
 
     def _resend_permanent_messages(self):
-        [self.send_message(msg) for group in self._permanent_messages for msg in self._permanent_messages[group]]
+        """Internal method to resend all permanent messages."""
+        [self.send_message(entry[1]) for entry in self._permanent_messages]
 
     def _get_next_query_id(self):
         id_ = self._next_query_id

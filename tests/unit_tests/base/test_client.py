@@ -201,9 +201,10 @@ class ClientTestCase(AsyncTestCase):
 
         c._resend_permanent_messages()
 
-        c.send_message.assert_any_call(m1)
-        c.send_message.assert_any_call(m2)
-        c.send_message.assert_any_call(m3)
+        self.assertEqual(3, c.send_message.call_count)
+        self.assertEqual(m1, c.send_message.call_args_list[0][0][0], "Messages sent out of order.")
+        self.assertEqual(m2, c.send_message.call_args_list[1][0][0], "Messages sent out of order.")
+        self.assertEqual(m3, c.send_message.call_args_list[2][0][0], "Messages sent out of order.")
 
     def test_permanent_messages_remove_group(self):
         c = base.client.Client(0, "foo")
