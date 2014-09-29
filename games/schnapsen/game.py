@@ -85,7 +85,6 @@ class Game(games.base.game.Game):
             )
         )
         self.trump = None
-        self._current_card = None
 
         self.start(self.run)
 
@@ -102,13 +101,12 @@ class Game(games.base.game.Game):
             while self.running:
                 self.log.new_turn()
 
-                self._current_card = lead_card = yield lead.play_card()
+                lead_card = yield lead.play_card()
                 self._send_card_play(lead_card, True)
                 follow_card = yield follow.play_card(lead_card)
                 self._send_card_play(follow_card, False)
 
                 lead, follow = self.evaluate_trick(lead, lead_card, follow, follow_card)
-                self._current_card = None
 
                 if not lead.hand or lead.points > 65:
                     break
@@ -219,20 +217,22 @@ class Game(games.base.game.Game):
 
     def handle_reconnect(self, client):
         super().handle_reconnect(client)
-        if self._current_card:
-            client.send_message({
-                "command": "games.schnapsen.card_played",
-                "is_lead": True,
-                "card": str(self._current_card)
-            })
 
     def _send_card_play(self, card, is_lead):
         for client in self.clients:
-            client.send_message({
-                "command": "games.schnapsen.card_played",
-                "is_lead": is_lead,
-                "card": str(card)
-            })
+            if is_lead:
+                client.send_permanent_message("card_played", {
+                    "command": "games.schnapsen.card_played",
+                    "is_lead": True,
+                    "card": str(card)
+                })
+            else:
+                client.send_message({
+                    "command": "games.schnapsen.card_played",
+                    "is_lead": False,
+                    "card": str(card)
+                })
+                client.remove_permanent_messages("card_played")
 
 
 class Player(games.base.game.Player):
