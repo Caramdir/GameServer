@@ -337,11 +337,9 @@ class Player(games.base.game.Player):
 
         if response["type"] == "exchange":
             self.log.simple_add_entry("{Player} do{es} an exchange for " + str(self.game.deck.open_card) + ".")
-            self.hand.add(
-                self.game.deck.exchange_open(
-                    self.hand.remove(Card("J", self.game.trump))
-                )
-            )
+            jack = self.hand.get_by_id(Card("J", self.game.trump).id)
+            self.hand.remove(jack)
+            self.hand.add(self.game.deck.exchange_open(jack))
             return (yield self.play_card())
 
         if response["type"] == "close":
