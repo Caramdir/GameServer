@@ -1,9 +1,8 @@
 from tornado.gen import coroutine
-#
-# from base.client import ClientCommunicationError
+
 import games.lobby
 import games.base.game
-from games.base.game import CheaterException, EndGameException
+from games.base.game import CheaterException, EndGameException, PlayerResignedException
 from games.base.log import TurnLog, GameLogEntry
 import games.base.cards
 import games.base.playing_cards
@@ -119,10 +118,13 @@ class Game(games.base.game.Game):
             e.player.resign()
         except EndGameException:
             pass
+        except PlayerResignedException:
+            pass
 
         self.running = False
 
         winner = self.determine_winner(lead, follow)
+        assert not winner.resigned
 
         self.do_game_end(winner)
 
@@ -197,9 +199,20 @@ class Game(games.base.game.Game):
         # or took the last trick.
         return lead
 
-#     def player_has_resigned(self, player):
-#         self.remove_player(player)
-#         self.end_game()
+    def player_has_resigned(self, player):
+        """
+        A player has resigned.
+
+        On of the players in currently waiting for user input. The resigning
+        player's interactions have already been cancelled by the general
+        resignation mechanism. So we just cancel the other player's interactions.
+
+        :param player: The resigning player.
+        :type player: Player
+        """
+        super().player_has_resigned(player)
+        other = [p for p in self.players if p != player][0]
+        other.client.cancel_interactions(PlayerResignedException(player))
 
     def get_game_ui_update_command(self):
         return {

@@ -468,48 +468,22 @@ class MockClient(Client):
         self.cancel_interactions = Mock()
 
 
-# class NullClient():
-#     """A client where all messages are discarded that can substitute for a real client (eg. after it disconnected)"""
-#
-#     def __init__(self, id=-1, name="[None]"):
-#         self.name = name
-#         self.html = html.escape(name)
-#         self.id = id
-#         self.is_admin = False
-#         self.location = None
-#         self.last_activity = time.time()
-#         self.messages = MessageQueue()
-#         self.ui = base.interface.CoroutineUI(self)
-#
-#     def quit(self, reason=""):
-#         pass
-#
-#     def send_message(self, item, is_chat=False):
-#         pass
-#
-#     def send_query(self, query, callback, params=None):
-#         pass
-#
-#     def query(self, *args, **kwargs):
-#         pass
-#
-#     def move_to(self, location):
-#         pass
-#
-#     def touch(self):
-#         pass
-#
-#     def handle_request(self, data):
-#         pass
-#
-#     def post_response(self, response):
-#         pass
-#
-#     def cancel_interactions(self):
-#         pass
-#
-#     def notify_of_exception(self, e):
-#         pass
+class NullClient():
+    """A client where all messages are discarded that can substitute for a real client (eg. after it disconnected)"""
+
+    def __init__(self, id_=-1, name="[None]"):
+        self.id = id_
+        self.name = name
+        self.html_name = html.escape(name)
+
+    def __str__(self):
+        return self.html_name
+
+    def send_message(self, cmd):
+        pass
+
+    def send_permanent_message(self, group, cmd):
+        pass
 
 
 class UnhandledClientRequestError(Exception):

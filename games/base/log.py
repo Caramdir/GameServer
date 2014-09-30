@@ -105,7 +105,7 @@ class Log:
         super().__init__()
         self.next_id = 0
         self.entries = []
-        self.players = players
+        self.players = players.copy()
         [p.set_log(self) for p in self.players]
 
     def get_next_id(self):

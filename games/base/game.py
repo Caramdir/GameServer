@@ -6,6 +6,7 @@ import random
 import logging
 
 import server
+import base.client
 import base.locations
 import games.base.log
 from games.base.log import PlayerLogFacade, GameLogEntry
@@ -84,6 +85,16 @@ class Player():
             "log": "/logs/" + log_file if log_file else None,
         })
 
+    def resign(self, reason=None):
+        """Resign from the game."""
+        if self.resigned or not self.game.running:
+            return
+        self.resigned = True
+        self.client.cancel_interactions(PlayerResignedException(self))
+        self.log.simple_add_entry("{Player} resign{s}.", reason=reason)
+        self.game.player_has_resigned(self)
+        self.trigger_public_ui_update()
+
     def get_info(self):
         """Return a dict with all the values used in the info box."""
         return {}
@@ -114,6 +125,8 @@ class Player():
         elif command == "game.leave":
             lobby = server.get_instance().games[self.game.game_identifier]["lobby"]
             self.client.move_to(lobby)
+        elif command == "game.resign":
+            self.resign()
         else:
             return False
         return True
@@ -130,6 +143,14 @@ class CheaterException(Exception):
 
 class EndGameException(Exception):
     pass
+
+
+class PlayerResignedException(base.client.InteractionCancelledException):
+    def __init__(self, player):
+        self.player = player
+
+    def __str__(self):
+        return "{} resigned.".format(self.player)
 
 
 class Game(base.locations.Location):
@@ -234,6 +255,23 @@ class Game(base.locations.Location):
             ))
         log_file = self._write_log()
         [p.display_end_message(log_file) for p in self.all_players]
+
+    def player_has_resigned(self, player):
+        """Implementation must override this method to handle player resignations."""
+        self.players.remove(player)
+
+    def leave(self, client, reason=None):
+        """A client leaves the game.
+
+        If the game is still running and the client hasn't resigned yet, make them resign.
+        We keep the Player instance (with a NullClient) for reference.
+        """
+        player = self.get_player_by_client(client)
+        if not player.resigned and self.running:
+            player.resign(reason)
+        player.client = base.client.NullClient(client.id, client.name)
+        super().leave(client, reason)
+        self.system_message(str(client) + " leaves the game.", level="INFO")
 
     def _write_log(self):
         """

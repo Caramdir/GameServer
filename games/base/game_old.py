@@ -42,16 +42,6 @@ class Player(RequestHandler):
         self.resigned = False
         self.waiting_message = None
 
-    def resign(self, reason=None):
-        """Resign from the game."""
-        if self.resigned or not self.game.running:
-            return
-        self.resigned = True
-        self.client.cancel_interactions(PlayerResignedException(self))
-        self.log.simple_add_entry("{Player} resign{s}.", reason=reason)
-        self.game.player_has_resigned(self)
-        self.trigger_public_ui_update()
-
     def send_waiting_message(self, waiting_for=None):
         if waiting_for:
             msg = "Waiting for {}...".format(waiting_for.html)
@@ -81,52 +71,12 @@ class Player(RequestHandler):
                 "message": self.waiting_message,
             })
 
-    def handle_request(self, client, command, data):
-        """Handle a request from the UI."""
-        if command == "game.resign":
-            self.resign()
-
-
-class PlayerResignedException(Exception):
-    def __init__(self, player):
-        self.player = player
-
-    def __str__(self):
-        return "{} resigned.".format(self.player.html)
-
 
 class Game(Location):
     """Abstract base class for games.
 
     This class doesn't contain any control mechanism.
     """
-
-    def player_has_resigned(self, player):
-        """Implementation must override this method to handle player resignations."""
-        raise NotImplementedError()
-
-    def remove_player(self, player):
-        """Remove a player from self.players.
-
-        Overriding implementations should make sure that removing the player does not block the game.
-        """
-        self.players.remove(player)
-
-    def leave(self, client, reason=None):
-        """A client leaves the game.
-
-        If the game is still running and the client hasn't resigned yet, make them resign.
-        We keep the Player instance (with a NullClient) for reference.
-        """
-        player = [p for p in self.all_players if p.client == client][0]
-        if not player.resigned and self.running:
-            player.resign(reason)
-        player.client = NullClient(client.id, client.name)
-        super().leave(client, reason)
-        client.game = None
-        self.system_message(client.html + " leaves the game.", level="INFO")
-
-
 
 
 ###############################################
