@@ -68,10 +68,6 @@ class Player(RequestHandler):
             self.client.send_message({"command": "games.base.remove_waiting_message"})
             self.waiting_message = None
 
-    def get_info(self):
-        """Return a dict with all the values used in the info box."""
-        return {}
-
     def handle_reconnect(self, client):
         super().handle_reconnect(client)
         self.send_init_command()
@@ -87,20 +83,8 @@ class Player(RequestHandler):
 
     def handle_request(self, client, command, data):
         """Handle a request from the UI."""
-        assert client == self.client, 'clients do not match'
-
-        if command == "games.get_info":
-            cmd = self.get_info()
-            cmd["command"] = "games.base.display_info"
-            client.send_message(cmd)
-        elif command == "game.leave":
-            lobby = GAMES[self.game.game_identifier]["lobby"]
-            self.client.move_to(lobby)
-        elif command == "game.resign":
+        if command == "game.resign":
             self.resign()
-        else:
-            return super().handle_request(client, command, data)
-        return True
 
 
 class PlayerResignedException(Exception):

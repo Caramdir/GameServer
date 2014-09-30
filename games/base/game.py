@@ -78,11 +78,15 @@ class Player():
 
     def display_end_message(self, log_file=None):
         """Display a link to return to the lobby at the end of the game."""
-        self.client.send_message({
+        self.client.send_permanent_message(self.game, {
             "command": "games.base.display_end_message",
             "game": self.game.game_identifier,
             "log": "/logs/" + log_file if log_file else None,
         })
+
+    def get_info(self):
+        """Return a dict with all the values used in the info box."""
+        return {}
 
     def __str__(self):
         return str(self.client)
@@ -91,11 +95,28 @@ class Player():
         assert client == self.client
         self.full_ui_update()
         self.game.log.resend(self)
-        # todo: end message
 
     def handle_request(self, client, command, data):
+        """
+        Handle a request from the UI.
+
+        Available commands:
+        * game.get_info: Display the info box.
+        * game.leave: Leave the game.
+        """
         assert client == self.client
-        return False
+
+        if command == "games.get_info":
+            cmd = self.get_info()
+            if cmd:
+                cmd["command"] = "games.base.display_info"
+                client.send_message(cmd)
+        elif command == "game.leave":
+            lobby = server.get_instance().games[self.game.game_identifier]["lobby"]
+            self.client.move_to(lobby)
+        else:
+            return False
+        return True
 
 
 class CheaterException(Exception):
@@ -235,8 +256,9 @@ class Game(base.locations.Location):
 
         We just pass on any request to the player object and super().
         """
-        handled = super().handle_request(client, command, data)
-        return self.get_player_by_client(client).handle_request(client, command, data) or handled
+        if not super().handle_request(client, command, data):
+            return self.get_player_by_client(client).handle_request(client, command, data)
+        return True
 
     def on_last_client_leaves(self):
         lobby = server.get_instance().games[self.game_identifier]["lobby"]

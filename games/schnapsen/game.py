@@ -253,13 +253,13 @@ class Player(games.base.game.Player):
             "points": self.points
         }
 
-#     def get_info(self):
-#         return {
-#             "points": self.points,
-#             "taken_cards": [str(c) for c in self.taken_cards],
-#             "trump": str(self.game.trump),
-#             "deck_size": len(self.game.deck) + int(bool(self.game.deck)),
-#         }
+    def get_info(self):
+        return {
+            "points": self.points,
+            "taken_cards": [str(c) for c in self.taken_cards],
+            "trump": str(self.game.trump),
+            "deck_size": len(self.game.deck),
+        }
 
     def draw(self, amount=1):
         cards = self.game.deck.draw(amount, True, log=True, player=self)
