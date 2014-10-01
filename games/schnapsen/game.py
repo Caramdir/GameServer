@@ -16,6 +16,7 @@ class Deck(games.base.cards.Deck):
         self.closing_player = None
 
     def determine_open_card(self):
+        """Determine trump during set up."""
         self.insert(0, self.draw())
 
     @property
@@ -31,6 +32,7 @@ class Deck(games.base.cards.Deck):
 
     @property
     def can_draw(self):
+        """Is it possible and allowed to draw from the deck?"""
         return self and not self.closed
 
     def draw(self, amount=1, collection=False, log=False, player=None, reason=None):
@@ -94,8 +96,6 @@ class Game(games.base.game.Game):
     def run(self):
         lead, follow = self._set_up()
 
-        # todo: envelop into try-catch for resignations
-        # todo: "waiting for ..." messages
         try:
             while self.running:
                 self.log.new_turn()
@@ -152,6 +152,15 @@ class Game(games.base.game.Game):
         return lead, follow
 
     def evaluate_trick(self, lead, lead_card, follow, follow_card):
+        """
+        Evaluate who won a trick and return the players in order for the next play.
+
+        :param lead: The current leading player.
+        :param lead_card: The card the leading player played.
+        :param follow: The current second player.
+        :param follow_card: The card the second player played.
+        :return: A tuple (new_lead, new_follow).
+        """
         if lead_card.suit == follow_card.suit:
             follow_won = follow_card.value > lead_card.value
         else:
@@ -232,6 +241,7 @@ class Game(games.base.game.Game):
         super().handle_reconnect(client)
 
     def _send_card_play(self, card, is_lead):
+        """Update the UI to show played cards."""
         for client in self.clients:
             if is_lead:
                 client.send_permanent_message("card_played", {
@@ -279,14 +289,14 @@ class Player(games.base.game.Player):
         self.hand.add(cards)
 
     @coroutine
-    def play_card(self, lead=None):
+    def play_card(self, lead_card=None):
         """Play the trick"""
         with self.game.waiting_message(self):
-            return (yield self._play_card(lead))
+            return (yield self._play_card(lead_card))
 
     @coroutine
-    def _play_card(self, lead=None):
-        options, cards = self._get_follow_options(lead) if lead else self._get_lead_options()
+    def _play_card(self, lead_card=None):
+        options, cards = self._get_follow_options(lead_card) if lead_card else self._get_lead_options()
         cards = [c.id for c in cards]
 
         return (yield self._do_play(options, cards))
@@ -301,13 +311,13 @@ class Player(games.base.game.Player):
             options.append({"type": "marriage", "suit_html": str(suit), "suit": suit.symbol})
         return options, self.hand
 
-    def _get_follow_options(self, lead):
+    def _get_follow_options(self, lead_card):
         if self.game.deck.open_card:
             cards = self.hand
         else:
-            cards = [card for card in self.hand if card.suit == lead.suit and card.value > lead.value]
+            cards = [card for card in self.hand if card.suit == lead_card.suit and card.value > lead_card.value]
             if not cards:
-                cards = [card for card in self.hand if card.suit == lead.suit]
+                cards = [card for card in self.hand if card.suit == lead_card.suit]
             if not cards:
                 cards = [card for card in self.hand if card.suit == self.game.trump]
             if not cards:

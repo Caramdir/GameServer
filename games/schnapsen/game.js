@@ -2,7 +2,7 @@ games.schnapsen = function() {
 
 	return {
 		
-		init : function(data) {
+		init : function() {
 			$("#main").empty();
             $("#main").removeClass().addClass("schnapsen");
             $("#main").append($("<div />", {id: "buttons"}));
@@ -64,12 +64,12 @@ games.schnapsen = function() {
             }
         },
 
-		play_turn : function(data) {
+		play_turn : function(params) {
             var i;
             var choices = [];
-			for (i=0; i < data.options.length; i++) {
-                var choice = {response: {id: data.id}};
-                switch (data.options[i].type) {
+			for (i=0; i < params.options.length; i++) {
+                var choice = {response: {id: params.id}};
+                switch (params.options[i].type) {
                     case "exchange":
                         choice.text = "Exchange the trump jack for the open card.";
                         choice.response.type = "exchange";
@@ -79,9 +79,9 @@ games.schnapsen = function() {
                         choice.response.type = "close";
                         break;
                     case "marriage":
-                        choice.text = "Play a marriage of " + data.options[i].suit_html + ".";
+                        choice.text = "Play a marriage of " + params.options[i]["suit_html"] + ".";
                         choice.response.type = "marriage";
-                        choice.response.suit = data.options[i].suit;
+                        choice.response.suit = params.options[i].suit;
                 }
                 choices.push(choice);
 			}
@@ -90,10 +90,10 @@ games.schnapsen = function() {
                 null,
                 $("#hand .card"),
                 function (e) {
-                    send_response({id: data.id, type: "card", card: e.attr("id")});
+                    send_response({id: params.id, type: "card", card: e.attr("id")});
                 },
                 function () {
-                    return data.cards.indexOf($(this).attr("id")) !== -1;
+                    return params.cards.indexOf($(this).attr("id")) !== -1;
                 },
                 choices
             );
