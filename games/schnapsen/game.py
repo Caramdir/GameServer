@@ -281,6 +281,11 @@ class Player(games.base.game.Player):
     @coroutine
     def play_card(self, lead=None):
         """Play the trick"""
+        with self.game.waiting_message(self):
+            return (yield self._play_card(lead))
+
+    @coroutine
+    def _play_card(self, lead=None):
         options, cards = self._get_follow_options(lead) if lead else self._get_lead_options()
         cards = [c.id for c in cards]
 
@@ -353,12 +358,12 @@ class Player(games.base.game.Player):
             jack = self.hand.get_by_id(Card("J", self.game.trump).id)
             self.hand.remove(jack)
             self.hand.add(self.game.deck.exchange_open(jack))
-            return (yield self.play_card())
+            return (yield self._play_card())
 
         if response["type"] == "close":
             self.log.simple_add_entry("{Player} close{s} the stock.")
             self.game.deck.close(self)
-            return (yield self.play_card())
+            return (yield self._play_card())
 
     def take_trick(self, *cards):
         self.log.simple_add_entry("{Player} take{s} the trick.")

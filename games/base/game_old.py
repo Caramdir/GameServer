@@ -28,48 +28,6 @@ class Player(RequestHandler):
 
     The class does any actions that the physical players would do and interface with the UI (via a client object).
     """
-    def __init__(self, client, game):
-        """Initialize the abstract player base class.
-
-        :param client: The client which this class represents.
-        :type client: client.Client
-        :param game: The game this player is playing.
-        :type game: AbstractGame
-        """
-        self.client = client
-        self.game = game
-        self.log = None
-        self.resigned = False
-        self.waiting_message = None
-
-    def send_waiting_message(self, waiting_for=None):
-        if waiting_for:
-            msg = "Waiting for {}...".format(waiting_for.html)
-        else:
-            msg = "Waiting for other players..."
-        self.client.send_message({
-            "command": "games.base.show_waiting_message",
-            "message": msg
-        })
-        self.waiting_message = msg
-
-    def remove_waiting_message(self):
-        if self.waiting_message:
-            self.client.send_message({"command": "games.base.remove_waiting_message"})
-            self.waiting_message = None
-
-    def handle_reconnect(self, client):
-        super().handle_reconnect(client)
-        self.send_init_command()
-        self.full_ui_update()
-        self.game.log.resend(self)
-        if not self.game.running:
-            self.display_end_message()
-        if self.waiting_message:
-            self.client.send_message({
-                "command": "games.base.show_waiting_message",
-                "message": self.waiting_message,
-            })
 
 
 class Game(Location):

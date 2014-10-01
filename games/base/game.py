@@ -304,3 +304,55 @@ class Game(base.locations.Location):
             lobby.games.remove(self)
         except KeyError:
             logger.debug("Tried to remove a game that has never been added to the lobby.")
+
+    def waiting_message(self, player, message="Waiting for {}"):
+        """
+        Display a "Waiting for `player`" type message to other players.
+
+        This returns a context manager that should be used with the `with`
+        statement.
+
+        Only one player should use this at the same time and calling this
+        multiple nested times is not supported.
+
+        :param player: The player currently doing an action.
+        :type player: Player
+        :param message: The message to display to other players.
+                        `{}` with be replaced with the player name.
+        :return: A context manager.
+        """
+        return WaitingMessageContextManager(self, player, message.format(player))
+
+
+class WaitingMessageContextManager:
+    def __init__(self, game, player, message):
+        """
+        The context manager that handles "waiting for"-messages.
+
+        :param game: The current game.
+        :type game: Game
+        :param player: The player doing an action.
+        :type player: Player
+        :param message: The message to display to other players.
+        :type message: str
+        """
+        self.game = game
+        self.player = player
+        self.message = message
+
+    def __enter__(self):
+        for player in self.game.all_players:
+            if player != self.player:
+                player.client.send_permanent_message(
+                    self,
+                    {
+                        "command": "games.base.show_waiting_message",
+                        "message": self.message
+                    }
+                )
+
+    def __exit__(self, type, value, traceback):
+        for player in self.game.all_players:
+            if player != self.player:
+                player.client.remove_permanent_messages(self)
+                player.client.send_message({"command": "games.base.remove_waiting_message"})
