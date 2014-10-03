@@ -50,8 +50,8 @@ def english_join_list(l):
 
 
 def plural_s(num, s="s"):
-    """Return `s` if and only if abs(num) != 1. (For use in nouns.)"""
-    if num == 1 or num == -1:
+    """Return `s` if and only if num != 1. (For use in nouns.)"""
+    if num == 1:
         return ""
     return s
 
