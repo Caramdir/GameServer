@@ -517,7 +517,8 @@ lobby = function () {
                 populate_switcher();
 //                $("#about_button").on("click", on_about_click);
                 $("#about_div").hide();
-
+                $("#automatch").hide();
+                $("#lobby_propose_form").hide();
 //                if (admin) {
 //                    $("#lobby_switcher").append($("<button/>", {
 //                        text: "admin",
@@ -602,6 +603,7 @@ games.lobby = function () {
 
             loader.css("/static/" + lobby.current + "/game.css");
             $("#automatch").hide();
+            $("#lobby_propose_form").show();
 
             $("#lobby_propose_form").submit(function() {return false;});
             $("#lobby_propose_button").click(function() { propose_game(); return false; });
