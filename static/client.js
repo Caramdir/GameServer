@@ -137,6 +137,17 @@ var waiter = (function() {
     };
 }());
 
+function set_variable(params) {
+    var c = eval(params["context"]);
+
+    if (c[params["variable"]] === undefined) {
+        console.error(params["context"] + "." + params["variable"] + " does not exist.");
+        return;
+    }
+
+    c[params["variable"]] = params["value"];
+}
+
 function send_request(data) {
 	$.ajax({
 		type : "POST",

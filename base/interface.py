@@ -72,3 +72,12 @@ class UI():
         """Say something to the client."""
         d = {"command": "ui.say", "message": msg}
         self.client.send_message(d)
+
+    def set_variable(self, context, variable, value):
+        """Sets a JS variable."""
+        self.client.send_message({
+            "command": "set_variable",
+            "context": context,
+            "variable": variable,
+            "value": value,
+        })
