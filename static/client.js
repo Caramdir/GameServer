@@ -794,7 +794,6 @@ games.base = function() {
         scroll_to_bottom($("#main"))
     };
 
-    var clicked_resign = false;
     var display_info = function(data) {
         /* This will show an info box with [content] and a resign button. */
         if ($("#info_box").length == 0) {
@@ -806,10 +805,10 @@ games.base = function() {
         info_box.empty();
         var container = $("<div/>");
         games[current_game].populate_info_box(container, data);
-        info_box.append(container)
+        info_box.append(container);
 
-        if (!games.base.resigned) {
-            clicked_resign = false;
+        if (games.base.running && !games.base.resigned) {
+            var clicked_resign = false;
             info_box.append($("<button/>", {
                 text: "Resign",
                 id: "resign_button",
@@ -866,13 +865,16 @@ games.base = function() {
     };
 
     return {
-        init: function(data) {
-            loader.script("/static/" + data.game + "/game.js");
-            loader.css("/static/" + data.game + "/game.css");
-            games.base.resigned = data.resigned;
-            ui.title.set(data.title);
-            current_game = data.game;
+        init: function(params) {
+            loader.script("/static/" + params["game"] + "/game.js");
+            loader.css("/static/" + params["game"] + "/game.css");
+            games.base.running = params["running"];
+            games.base.resigned = params["resigned"];
+            current_game = params["game"];
+            ui.title.set(available_games[current_game]);
         },
+
+        running: false,
 
         resign: function() {
             send_request({"command": "game.resign"});
@@ -881,6 +883,8 @@ games.base = function() {
             display_return_to_lobby_link();
             games.base.resigned = true;
         },
+
+        resigned: false,
 
         display_end_message: display_end_message,
         display_return_to_lobby_link: display_return_to_lobby_link,

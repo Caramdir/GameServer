@@ -216,16 +216,19 @@ class Game(base.locations.Location):
         `__init__()` finishes. Thus it cannot depend on anything set there.
         """
         super().send_init(client)
+        player = self.get_player_by_client(client)
         client.send_message({
             "command": "games.base.init",
             "game": self.game_identifier,
-            # "resigned": self.resigned, #todo: implement resignation
+            "running": self.running,
+            "resigned": player.resigned,
             "players": {p.client.id: str(p) for p in self.all_players}
         })
 
     def start(self, main_func):
         self.running = True
         self.anchor_coroutine(main_func)
+        [p.client.ui.set_variable("games.base", "running", True) for p in self.all_players]
 
     def trigger_game_ui_update(self):
         """The overall game UI should be updated."""
@@ -254,7 +257,9 @@ class Game(base.locations.Location):
                 "{who} win{s}!".format(who=english_join_list([str(p) for p in winners]), s=singular_s(len(winners)))
             ))
         log_file = self._write_log()
-        [p.display_end_message(log_file) for p in self.all_players]
+        for player in self.all_players:
+            player.display_end_message(log_file)
+            player.client.ui.set_variable("games.base", "running", False)
 
     def player_has_resigned(self, player):
         """Implementation must override this method to handle player resignations."""
