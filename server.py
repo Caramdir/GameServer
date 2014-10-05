@@ -252,6 +252,7 @@ _application = tornado.web.Application(
 #         (r"/login/local", UnregisteredLoginHandler),
 #         (r"/login/google", GoogleLoginHandler),
 #         (r"/quit.*", QuitHandler),
+        (r"/logs/(.*)", tornado.web.StaticFileHandler, {"path": config["game_log_path"]})
     ],
     login_url="/login",
     template_path=config.template_path,
