@@ -4,6 +4,7 @@ from unittest import TestCase
 from tornado.testing import AsyncTestCase, gen_test
 import tornado.ioloop
 import tornado.gen
+import tornado.concurrent
 
 import base.client
 import base.locations
@@ -302,3 +303,72 @@ class MessageQueueTestCase(AsyncTestCase):
         self.mq.clear()
 
         self.assertEqual(self.mq.get_all(), [])
+
+
+class MockClientTest(AsyncTestCase):
+    def test_send_message(self):
+        c = base.client.MockClient()
+        m1 = {"foo": "bar"}
+        m2 = {"spam": "ham"}
+
+        self.assertFalse(c.messages)
+
+        c.send_message(m1)
+
+        self.assertEqual([m1], c.messages)
+
+        c.send_message(m2)
+
+        self.assertEqual([m1, m2], c.messages)
+
+    def test_query(self):
+        c = base.client.MockClient()
+
+        f1 = c.query("foo", bar="foobar")
+
+        self.assertIsInstance(f1, tornado.concurrent.Future)
+        self.assertFalse(f1.done())
+
+        f2 = c.query("cmd", a=1, b=2)
+
+        self.assertIsInstance(f2, tornado.concurrent.Future)
+        self.assertFalse(f2.done())
+        self.assertEqual(2, len(c.messages))
+
+        c.mock_response({"x": "y"})
+
+        self.assertTrue(f2.done())
+        self.assertEqual({"x": "y"}, f2.result())
+        self.assertFalse(f1.done())
+
+        c.mock_response({"a": "b"}, 0)
+
+        self.assertTrue(f1.done())
+        self.assertEqual({"a": "b"}, f1.result())
+        self.assertEqual({"x": "y"}, f2.result())
+
+    @gen_test
+    def test_cancel_interactions(self):
+        c = base.client.MockClient()
+
+        f1 = c.query("cmd1")
+        f2 = c.query("cmd1")
+
+        c.cancel_interactions()
+
+        with self.assertRaises(base.client.InteractionCancelledException):
+            yield f1
+        with self.assertRaises(base.client.InteractionCancelledException):
+            yield f2
+
+    @gen_test
+    def test_cancel_interactions_custom(self):
+        c = base.client.MockClient()
+
+        f = c.query("a_command", param1="foo", param2="bar")
+        e = Exception()
+        c.cancel_interactions(e)
+
+        with self.assertRaises(Exception) as cm:
+            yield f
+        self.assertEqual(e, cm.exception)

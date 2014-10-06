@@ -13,7 +13,7 @@ class LocationTestCase(unittest.TestCase):
         l = base.locations.Location({c1, c2})
 
         self.assertIn(c1, l.clients)
-        self.assertTrue(c1.send_message.called)
+        self.assertTrue(c1.messages)
         self.assertEqual(l, c1.location)
         self.assertIn(c2, l.clients)
 
@@ -24,7 +24,7 @@ class LocationTestCase(unittest.TestCase):
         l.join(c)
 
         self.assertIn(c, l.clients)
-        self.assertTrue(c.send_message.called)
+        self.assertTrue(c.messages)
         self.assertEqual(l, c.location)
 
     def test_leave(self):
@@ -41,11 +41,11 @@ class LocationTestCase(unittest.TestCase):
     def test_reconnect(self):
         c = MockClient()
         l = base.locations.Location({c})
-        c.send_message.reset_mock()
+        c.messages.clear()
 
         l.handle_reconnect(c)
 
-        self.assertTrue(c.send_message.called)
+        self.assertTrue(c.messages)
 
     def test_chat_message(self):
         c1, c2 = MockClient(), MockClient()

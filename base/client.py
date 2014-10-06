@@ -459,10 +459,31 @@ class InteractionCancelledException(Exception):
 class MockClient(Client):
     def __init__(self, id_=0, name="Mock Client"):
         super().__init__(id_, name)
-        self.send_message = Mock()
+        self.messages = []
+        self.queries = []
         self.send_chat_message = Mock()
-        self.query = Mock()
-        self.cancel_interactions = Mock()
+
+    def send_message(self, msg):
+        self.messages.append(msg)
+
+    def query(self, command, **kwargs):
+        query = kwargs
+        query["command"] = command
+        future = Future()
+        self.queries.append({"query": query, "future": future})
+        self.send_message(query)
+        return future
+
+    def mock_response(self, response, id_=-1):
+        f = self.queries[id_]["future"]
+        f.set_result(response)
+
+    def cancel_interactions(self, exception=None):
+        if exception is None:
+            exception = InteractionCancelledException()
+        for q in self.queries:
+            if not q["future"].done():
+                q["future"].set_exception(exception)
 
 
 class NullClient():
