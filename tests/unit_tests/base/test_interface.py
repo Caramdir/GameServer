@@ -1,19 +1,55 @@
-import unittest
-from unittest.mock import Mock
+from tornado.testing import AsyncTestCase, gen_test
 
 from base.interface import UI
+from base.client import MockClient
 
 
-class InterfaceTestCase(unittest.TestCase):
+class InterfaceTestCase(AsyncTestCase):
+    @gen_test
+    def test_choice(self):
+        c = MockClient()
+        ui = UI(c)
+
+        f = ui.ask_choice("Question?", ["x", "y", "z"])
+        c.mock_response({"value": 1})
+
+        result = yield f
+        self.assertEqual(result, 1)
+
+    @gen_test
+    def test_yesno_no(self):
+        c = MockClient()
+        ui = UI(c)
+
+        f = ui.ask_yes_no("Question?")
+        c.mock_response({"value": 1})
+
+        result = yield f
+        self.assertFalse(result)
+
+    @gen_test
+    def test_yesno_yes(self):
+        c = MockClient()
+        ui = UI(c)
+
+        f = ui.ask_yes_no("Question?")
+        c.mock_response({"value": 0})
+
+        result = yield f
+        self.assertTrue(result)
+
     def test_set_variable(self):
-        c = Mock()
+        c = MockClient()
         ui = UI(c)
 
         ui.set_variable("foo", "bar", "x")
 
-        c.send_message.assert_called_once_with({
-            "command": "set_variable",
-            "context": "foo",
-            "variable": "bar",
-            "value": "x",
-        })
+        self.assertEqual(
+            [{
+                "command": "set_variable",
+                "context": "foo",
+                "variable": "bar",
+                "value": "x",
+            }],
+            c.messages,
+        )
