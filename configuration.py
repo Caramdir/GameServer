@@ -9,14 +9,11 @@ from collections import ChainMap
 # Parse command line options
 #
 # parser = argparse.ArgumentParser()
-# parser.add_argument("--dev", dest="dev", action="store_true", default=False,
-# help="Run with development options for easier testing.")
 # parser.add_argument("--port", action="store", type=int, default=9999,
 #                     help="Port on which the HTTP server listens for connections.")
 # args = parser.parse_args()
 #
 # port = args.port
-# DEVTEST = args.dev
 #
 # del parser
 # del args
@@ -71,11 +68,8 @@ config = ConfigChainMap(dict(
     jqueryui_js="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js",
     jqueryui_css="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css",
 
-    # In DEVTEST instances, skip the name entering page on login and automatically create a user name.
-    #devtest_direct_login = False,
-
-    # In DEVTEST instances, automatically enable automatching.
-    #devtest_auto_automatch = False,
+    # Whether to allow cheats (useful for testing).
+    cheats_enabled=False,
 ))
 
 

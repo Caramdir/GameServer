@@ -1,7 +1,6 @@
 var client_id = null;
 var client_name = "";
 var on_resize = null;
-var devtest = false;
 var admin = false;
 var available_games = {};
 
@@ -24,10 +23,6 @@ String.prototype.repeat = function( num )
 $(window).on("beforeunload", function() {waiter.disconnect()});
 
 $(document).ready(function() {
-	client_id = parseInt(this.location.pathname.substring(6));
-    if (client_id)
-        devtest = true;
-
     chat.init();
 
 	waiter.connect();
@@ -39,7 +34,6 @@ function set_client_info(data) {
     client_id = data.id;
     client_name = data.name;
     loader.set_cache_control(data.cache_control);
-    devtest = data.devtest;
     admin = data["admin"];
     if (admin) {
         loader.script("/static/admin.js");
@@ -73,8 +67,7 @@ var command_loop = (function() {
         var command = message["command"];
         var fn = eval(command);
         if (fn) {
-            if (devtest)
-                console.log("Running command: " + command);
+            // console.log("Running command: " + command);
             fn(message);
         } else {
             console.log("Unknown command: " + command);
@@ -108,7 +101,7 @@ var waiter = (function() {
     var connect = function() {
         if (request) return;
         request = $.ajax({
-            url: "/poll"+ (devtest? "/" + client_id : "") + "?session_id=" + session_id,
+            url: "/poll?session_id=" + session_id,
             dataType: "json",
             success: waitcomplete,
             cache: false,
@@ -151,7 +144,7 @@ function set_variable(params) {
 function send_request(data) {
 	$.ajax({
 		type : "POST",
-		url : "/request"+ (devtest? "/" + client_id : "") + "?session_id=" + session_id,
+		url : "/request?session_id=" + session_id,
 		data : JSON.stringify(data)
 	});
 }
@@ -159,7 +152,7 @@ function send_request(data) {
 function send_response(data) {
 	$.ajax({
 		type : "POST",
-		url : "/response" + (devtest? "/" + client_id : "") + "?session_id=" + session_id,
+		url : "/response?session_id=" + session_id,
 		data : JSON.stringify(data)
 	});
 }

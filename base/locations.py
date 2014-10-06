@@ -4,6 +4,7 @@ import logging
 
 import tornado.ioloop
 
+from configuration import config
 import base.client
 import server
 
@@ -72,8 +73,8 @@ class Location:
                 return False
             message = data["message"].strip()
             if message:
-#                 if config.DEVTEST and data["message"].startswith("cheat: "):
-#                     self.cheat(self, data["message"][7:])
+                if config["cheats_enabled"] and data["message"].startswith("cheat: "):
+                    self.cheat(client, data["message"][7:])
                 cmd = {
                     "command": "chat.receive_message",
                     "sender": str(client),
@@ -92,16 +93,16 @@ class Location:
         """
         self.send_init(client)
 
-#     def cheat(self, client, command):
-#         """
-#         This is called in DEVTEST runs when a chat message starting with "cheat: " is received.
-#
-#         Implementations (esp. games) may override this method.
-#
-#         :param client: The client entering the cheat.
-#         :param command: The cheat command (without "cheat: ").
-#         """
-#         pass
+    def cheat(self, client, command):
+        """
+        If `config["enable_cheats"]` is true, then this runs when a chat message starting with "cheat: " is received.
+
+        Implementations (esp. games) may override this method.
+
+        :param client: The client entering the cheat.
+        :param command: The cheat command (without "cheat: ").
+        """
+        pass
 
     def system_message(self, text, level="WARN"):
         """Send a system message to everyone."""

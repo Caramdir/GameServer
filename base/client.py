@@ -12,7 +12,7 @@ from unittest.mock import Mock
 import tornado.ioloop
 from tornado.concurrent import Future
 
-# import config
+from configuration import config
 import server
 import base.interface
 
@@ -274,12 +274,9 @@ class Client:
             "command": "set_client_info",
             "id": self.id,
             "name": str(self),
-#            "devtest": config.DEVTEST,
-            "devtest": False,
             "admin": self.is_admin,
+            "cache_control": config["cache_control"]
         }
-#         if not config.DEVTEST:
-#             msg["cache_control"] = config.cache_control
         self.send_message(msg)
 
         games = {key: server.get_instance().games[key]["name"] for key in server.get_instance().games.keys()}

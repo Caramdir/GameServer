@@ -21,19 +21,15 @@ logger = logging.getLogger(__name__)
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        """Return the client object for the current connection.
+        """
+        Return the client object for the current connection.
 
-        Normally we identify the client by a (secure) cookie, but in DEVTEST instances we
-        just append the client id to the URL so that several connections can be opened
-        simultaneously.
+        We identify the client by a (secure) cookie.
 
         :return: Client object for the current connection.
         :rtype : base.client.Client
         """
         try:
-#             if config.DEVTEST:
-#                 identifier = self.request.path.split("/")[-1]
-#             else:
             identifier = self.get_secure_cookie("client_id")
             return get_instance().clients[int(identifier)]
         except (KeyError, ValueError, TypeError):
@@ -136,8 +132,6 @@ class StartHandler(BaseHandler):
 
         self.render("client.html",
                     client=self.current_user,
-                    #devtest=config.DEVTEST,
-                    devtest=False,
                     config=config,
                     )
 
@@ -162,9 +156,6 @@ class LoginHandler(BaseHandler):
                         error="There is already a player with this name.")
             return
 
-#        if config.DEVTEST:
-#            self.redirect("/" + str(c.id))
-#        else:
         self.set_secure_cookie("client_id", str(client.id))
         self.redirect("/")
 

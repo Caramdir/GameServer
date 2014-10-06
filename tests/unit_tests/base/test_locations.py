@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
+from configuration import config
 import base.locations
 from base.client import MockClient
 
@@ -66,6 +67,26 @@ class LocationTestCase(unittest.TestCase):
 
         self.assertFalse(ret)
         self.assertFalse(c.send_chat_message.called)
+
+    def test_cheats_disabled(self):
+        config["cheats_enabled"] = False
+        c = MockClient()
+        l = base.locations.Location({c})
+        l.cheat = Mock()
+
+        l.handle_request(c, "chat.message", {"message": "cheat: foo"})
+
+        self.assertFalse(l.cheat.called)
+
+    def test_cheats_enabled(self):
+        config["cheats_enabled"] = True
+        c = MockClient()
+        l = base.locations.Location({c})
+        l.cheat = Mock()
+
+        l.handle_request(c, "chat.message", {"message": "cheat: foo"})
+
+        l.cheat.assert_called_once_with(c, "foo")
 
     def test_on_last_client_leaves(self):
         c1, c2 = MockClient(), MockClient()
