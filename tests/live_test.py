@@ -1,10 +1,17 @@
+"""
+Base classes for tests that have a live web server running in a separate thread.
+"""
+
 import unittest
 import threading
+import os
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import Select, WebDriverWait
+
+from pyvirtualdisplay import Display
 
 import tornado.ioloop
 
@@ -38,7 +45,23 @@ class LiveTestCase(unittest.TestCase):
 
 
 class SeleniumTestCase(LiveTestCase):
+    """
+    Base class for (functional) tests that use selenium.
+
+    If the environment variable `HIDE_OUTPUT` is set to `true`, then the tests
+    will be run in the background and browser windows will not be visible.
+    """
     def create_browser_instance(self, username="", game=""):
+        """
+        Open a browser (i.e. Selenium webdriver) instance.
+
+        If `username` is given, then automatically log in as that user.
+        If `game` is given, then automatically switch to that game's lobby.
+
+        :param username: Log in as this user (if not empty).
+        :param game: Go to this game (if not empty).
+        :rtype: webdriver.Firefox
+        """
         profile = webdriver.FirefoxProfile()
         profile.set_preference("extensions.autoDisableScopes", 15)
         profile.set_preference("extensions.enabledScopes", 1)
@@ -66,6 +89,10 @@ class SeleniumTestCase(LiveTestCase):
         return browser
 
     def _pre_setUp(self):
+        self.display = None
+        if "HIDE_OUTPUT" in os.environ and os.environ["HIDE_OUTPUT"].lower() == "true":
+            self.display = Display(visible=0, size=(800, 600))
+            self.display.start()
         super()._pre_setUp()
         self._browsers = []
 
@@ -74,3 +101,5 @@ class SeleniumTestCase(LiveTestCase):
         for browser in self._browsers:
             browser.quit()
         self._browsers = []
+        if self.display:
+            self.display.stop()
