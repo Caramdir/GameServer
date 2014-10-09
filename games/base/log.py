@@ -312,21 +312,24 @@ class PlayerLogFacade:
         entry.indentation = self.indentation
         self.log.add_entry(entry)
 
-    def simple_add_entry(self, message, message_other_tmp=None, reason=None, **kwargs):
+    def simple_add_entry(self, message, message_other=None, message_other_tmp=None, reason=None, **kwargs):
         """
         Create and add a log entry with a message with only simple substitutions for the various versions.
 
-        :param message: The message string. {player} is replaced by "You" or the player name and {s}
+        :param message: The message string. {Player} is replaced by "You" or the player name and {s}
                         is replaced so that a grammatically correct sentence ensues.
+        :param message_other: Message to show to other players. If this is none, then `message` will be used.
         :param message_other_tmp: A temporary message to show to other players (until the real message can be revealed).
                                   Only used if not None.
         :param kwargs: All other keyword arguments will simply be passed through to the `format` calls
                        on the messages.
         """
+        if message_other is None:
+            message_other = message
         if message_other_tmp is None:
             self.add_entry(PlayerLogEntry(
                 message.format(Player="You", player="you", s="", es="", has="have", **kwargs),
-                message.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has", **kwargs),
+                message_other.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has", **kwargs),
                 reason=reason
             ))
         else:
@@ -337,7 +340,7 @@ class PlayerLogFacade:
                     s="", es="", has="have",
                     **kwargs
                 ),
-                message.format(
+                message_other.format(
                     Player=str(self.player),
                     player=str(self.player),
                     s="s", es="es", has="has",

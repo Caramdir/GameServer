@@ -307,31 +307,32 @@ class Deck(LocationCardCollection):
 
         if log:
             assert player, "If [log] == True, a [player] must be given."
-            self.log_draw(player, cards, reason)
+            self._log_draw(player, cards, reason)
 
         if amount == 1 and not collection:
             return cards[0]
         else:
             return cards
 
-    def log_draw(self, player, cards, reason):
+    def _log_draw(self, player, cards, reason):
         if player.log.indentation == 0:
-            player.log.add_entry(PlayerLogEntry(
-                "You draw " + english_join_list([str(card) for card in cards]) + ".",
-                "{name} draws {amount} card{s}.".format(
-                    name=player,
-                    amount=a_or_number(len(cards)),
-                    s=plural_s(len(cards))),
-                str(player) + " draws " + english_join_list([str(card) for card in cards]) + ".",
+            player.log.simple_add_entry(
+                message="{Player} draw{s} {cards}.",
+                message_other="{Player} draw{s} {amount} card{card_s}.",
+                cards=english_join_list(cards),
+                amount=a_or_number(len(cards)),
+                card_s=plural_s(len(cards)),
                 reason=reason
-            ))
+            )
         else:
-            player.log.add_entry(PlayerLogEntry(
-                "drawing " + english_join_list([str(card) for card in cards]) + ".",
-                "drawing {amount} card{s}.".format(amount=a_or_number(len(cards)), s=plural_s(len(cards))),
-                "drawing " + english_join_list([str(card) for card in cards]) + ".",
+            player.log.simple_add_entry(
+                message="drawing {cards}.",
+                message_other="drawing {amount} card{card_s}.",
+                cards=english_join_list(cards),
+                amount=a_or_number(len(cards)),
+                card_s=plural_s(len(cards)),
                 reason=reason
-            ))
+            )
 
 
 class Discard(LocationCardCollection):

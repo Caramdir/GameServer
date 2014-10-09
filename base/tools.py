@@ -35,9 +35,13 @@ from configuration import config
 
 
 def english_join_list(l):
-    """Join a list of strings into a comma and "and"-separated string.
-    @type l: list
-    @param l: The list to join.
+    """
+    Join a list of strings into a comma and "and"-separated string.
+
+    The entries of the list will be passed through `str`.
+
+    :type l: list
+    :param l: The list to join.
     """
     l = [str(o) for o in l]
     if len(l) == 0:
