@@ -26,19 +26,26 @@ def get_suit(symbol):
     return [s for s in SUITS if s.symbol == symbol][0]
 
 
-UNICODE = {
-    "♠": {"A": "🂡", "K": "🂮", "Q": "🂭", "J": "🂫", "10": "🂪"},
-    "♥": {"A": "🂱", "K": "🂾", "Q": "🂽", "J": "🂻", "10": "🂺"},
-    "♦": {"A": "🃁", "K": "🃎", "Q": "🃍", "J": "🃋", "10": "🃊"},
-    "♣": {"A": "🃑", "K": "🃞", "Q": "🃝", "J": "🃛", "10": "🃚"}
-}
+RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+
+UNICODE = {}
+for _i, _suit in enumerate([SPADE, HEART, DIAMOND, CLUB]):
+    UNICODE[_suit] = {}
+    for _j, _rank in enumerate(RANKS):
+        if _rank == "Q" or _rank == "K":
+            _j += 1  # we ignore the knight (C) cards
+        UNICODE[_suit][_rank] = chr(0x1F0A1 + 16*_i + _j)
 
 
 class Card(games.base.cards.Card):
-    def __init__(self, rank, suit):
-        self.rank = rank
+    def __init__(self, rank, suit, value=0):
+        self.rank = str(rank).upper()
+        if self.rank == "1":
+            self.rank = "A"
+        assert self.rank in RANKS
         self.suit = suit
-        self.value = 0
+        assert isinstance(self.suit, Suit)
+        self.value = value
         self.id = self.suit.symbol + self.rank
 
     def rank_name(self):
@@ -59,7 +66,7 @@ class Card(games.base.cards.Card):
     def __str__(self):
         return """<span class="card suit-{color}" id="{id}">{symbol}</span>""".format(
             color=self.suit.color,
-            symbol=UNICODE[self.suit.symbol][self.rank],
+            symbol=UNICODE[self.suit][self.rank],
             id=self.id,
         )
 
@@ -67,30 +74,24 @@ class Card(games.base.cards.Card):
         assert type(other) is Card, "other is not a card."
         return self.suit == other.suit and self.rank == other.rank
 
+    def __hash__(self):
+        return hash(self.id)
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
 
-def get_cards(type_, values=None):
+def get_cards(specification):
     """
     Get a list of playing cards of the specified type.
 
-    Currently supported types:
-    * 20: Cards 10, J, Q, K, A
+    :param specification: A dict of rank:value pairs.
+    :type specification: dict
+    :rtype: games.base.cards.CardCollection
     """
-    if not values:
-        values = {}
-
-    if type_ != 20:
-        raise ValueError("Unsupported deck type {}.".format(type_))
-
-    cards = []
-    ranks = ["10", "J", "Q", "K", "A"]
-    for suit in SUITS:
-        for rank in ranks:
-            card = Card(rank, suit)
-            if rank in values:
-                card.value = values[rank]
-            cards.append(card)
+    cards = games.base.cards.CardCollection()
+    for rank, value in specification.items():
+        for suit in SUITS:
+            cards.append(Card(rank=rank, suit=suit, value=value))
 
     return cards
