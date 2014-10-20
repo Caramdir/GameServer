@@ -32,6 +32,41 @@ class Card:
 class CardCollection(list):
     """A generic collection of cards."""
 
+    def __init__(self, iterable=None):
+        if iterable is not None:
+            assert all(isinstance(o, Card) for o in iterable), "Only cards are allowed in a CardCollection."
+            assert len(iterable) == len(set(iterable)), "Duplicate cards are not allowed."
+            super().__init__(iterable)
+        else:
+            super().__init__()
+
+    def append(self, card):
+        assert isinstance(card, Card), "Only cards are allowed in a CardCollection."
+        assert not card in self, "Duplicate cards are not allowed."
+        super().append(card)
+
+    def copy(self):
+        return CardCollection(self[:])
+
+    def extend(self, iterable):
+        assert all(isinstance(o, Card) for o in iterable), "Only cards are allowed in a CardCollection."
+        assert all(card not in self for card in iterable), "Duplicate cards are not allowed."
+        assert len(iterable) == len(set(iterable)), "Duplicate cards are not allowed."
+        super().extend(iterable)
+
+    def insert(self, index, card):
+        assert isinstance(card, Card), "Only cards are allowed in a CardCollection."
+        assert not card in self, "Duplicate cards are not allowed."
+        super().insert(index, card)
+
+    def remove(self, card):
+        assert isinstance(card, Card)
+        super().remove(card)
+
+    def remove_collection(self, iterable):
+        for card in iterable:
+            self.remove(card)
+
     def filter(self, *conditions, **kwconditions):
         """Get a subcollection of all cards having class in *conditions and parameters specified in **kwconditions."""
         f = self
@@ -64,23 +99,6 @@ class CardCollection(list):
         """Shuffle the collection."""
         random.shuffle(self)
 
-    def add(self, cards):
-        """Add cards to the collection. The argument can either be a card or a collection of cards."""
-        if not cards:
-            return
-        if isinstance(cards, Card):
-            self.append(cards)
-        else:
-            self.extend(cards)
-
-    def remove(self, cards):
-        """Remove a card or a list of cards from the collection."""
-        if isinstance(cards, Card):
-            super().remove(cards)
-        else:
-            for card in cards:
-                super().remove(card)
-
     def get_by_ids(self, ids):
         """Get the cards with the given ids."""
         return [c for c in self if c.id in ids]
@@ -93,47 +111,54 @@ class CardCollection(list):
         """Get all cards except those with the given ids,"""
         return CardCollection([c for c in self if not c.id in ids])
 
-    def empty(self):
-        del self[:]
-
-    def copy(self):
-        return CardCollection(self[:])
-
 
 class LocationCardCollection(CardCollection):
-    def add(self, cards):
-        if isinstance(cards, Card):
-            assert cards.location is None, "Location is {}.".format(cards.location)
-            cards.location = self
-        else:
-            for card in cards:
-                assert card.location is None, "Location is {}.".format(card.location)
-                card.location = self
-        super().add(cards)
-
-    def remove(self, cards):
-        super().remove(cards)
-        if isinstance(cards, Card):
-            assert cards.location == self, "Location is {}.".format(cards.location)
-            cards.location = None
-        else:
-            for card in cards:
-                assert card.location == self, "Location is {}.".format(card.location)
-                card.location = None
-
-    def empty(self):
+    def __init__(self, iterable=None):
+        if iterable is not None:
+            assert all(card.location is None for card in iterable)
+        super().__init__(iterable)
         for card in self:
-            assert card.location == self, "Location is {}.".format(card.location)
+            card.location = self
+
+    def append(self, card):
+        assert card.location is None, "Location is {}.".format(card.location)
+        super().append(card)
+        card.location = self
+
+    def clear(self):
+        assert all(card.location == self for card in self)
+        for card in self:
             card.location = None
-        super().empty()
+        super().clear()
+
+    def extend(self, iterable):
+        super().extend(iterable)
+        for card in iterable:
+            card.location = self
+
+    def insert(self, index, card):
+        assert card.location is None, "Location is {}.".format(card.location)
+        super().insert(index, card)
+        card.location = self
+
+    def pop(self, index=-1):
+        card = super().pop(index)
+        assert card.location is self
+        card.location = None
+        return card
+
+    def remove(self, card):
+        assert card.location == self
+        super().remove(card)
+        card.location = None
 
 
 class PlayerRelatedCardCollection(CardCollection):
-    def __init__(self, player):
+    def __init__(self, player, iterable=None):
         """
-        :type player: games.base.game.AbstractPlayer
+        :type player: games.base.game.Player
         """
-        super().__init__()
+        super().__init__(iterable)
         self.player = player
 
     def _trigger_ui_update(self):
@@ -143,19 +168,31 @@ class PlayerRelatedCardCollection(CardCollection):
         """
         pass
 
-    def add(self, cards):
-        """Trigger a UI update on adding cards to the collection."""
-        super().add(cards)
+    def append(self, card):
+        """Trigger a UI update on adding a card to the collection."""
+        super().append(card)
         self._trigger_ui_update()
+
+    def clear(self):
+        super().clear()
+        self._trigger_ui_update()
+
+    def extend(self, iterable):
+        super().extend(iterable)
+        self._trigger_ui_update()
+
+    def insert(self, index, card):
+        super().insert(index, card)
+        self._trigger_ui_update()
+
+    def pop(self, index=-1):
+        card = super().pop(index)
+        self._trigger_ui_update()
+        return card
 
     def remove(self, cards):
         """Trigger a UI update on removing cards from the collection."""
         super().remove(cards)
-        self._trigger_ui_update()
-
-    def empty(self):
-        """Trigger a UI update on emptying the collection."""
-        super().empty()
         self._trigger_ui_update()
 
 
@@ -224,10 +261,10 @@ class Hand(PlayerRelatedCardCollection, LocationCardCollection):
 
         self.log_discard(choices, reason=reason)
 
-        self.remove(choices)
+        self.remove_collection(choices)
         if hasattr(self.player.game, "discard"):
-            assert isinstance(self.player.game.discard, CardCollection)
-            self.player.game.discard.add(choices)
+            assert isinstance(self.player.game.discard, Discard)
+            self.player.game.discard.extend(choices)
         return choices
 
     def log_discard(self, discarded_cards, reason=None):
@@ -239,8 +276,9 @@ class Hand(PlayerRelatedCardCollection, LocationCardCollection):
         else:
             amount = len(discarded_cards)
             plural = plural_s(amount)
-            cards = english_join_list([str(card) for card in discarded_cards])
+            cards = english_join_list(discarded_cards)
 
+            # todo: use simple_add_entry()
             if self.player.log.indentation == 0:
                 self.player.log.add_entry(PlayerLogEntry(
                     "You discard " + cards + ".",
@@ -268,8 +306,6 @@ class Deck(LocationCardCollection):
     """A deck of cards (from which one can draw a card)."""
     def __init__(self, game, *args):
         super().__init__(*args)
-        for card in self:
-            card.location = self
         self.game = game
 
     def _on_empty_deck(self, player):
@@ -298,7 +334,7 @@ class Deck(LocationCardCollection):
         if len(self) < amount:
             amount = len(self)
         if amount == 0:
-            return None
+            return CardCollection() if collection else None
 
         cards = CardCollection(self[-amount:])
         del self[-amount:]
