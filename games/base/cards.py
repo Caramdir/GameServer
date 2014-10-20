@@ -40,6 +40,13 @@ class CardCollection(list):
         else:
             super().__init__()
 
+    def __setitem__(self, key, card):
+        """
+        Note that we do not assert uniqueness here. This is needed for shuffling.
+        """
+        assert isinstance(card, Card), "Only cards are allowed in a CardCollection."
+        super().__setitem__(key, card)
+
     def append(self, card):
         assert isinstance(card, Card), "Only cards are allowed in a CardCollection."
         assert not card in self, "Duplicate cards are not allowed."
@@ -119,6 +126,19 @@ class LocationCardCollection(CardCollection):
         super().__init__(iterable)
         for card in self:
             card.location = self
+
+    def __setitem__(self, key, value):
+        assert self[key].location is self
+        assert value.location is None
+        self[key].location = None
+        super().__setitem__(key, value)
+        value.location = self
+
+    def __delitem__(self, key):
+        card = self[key]
+        super().__delitem__(key)
+        assert card.location == self
+        card.location = None
 
     def append(self, card):
         assert card.location is None, "Location is {}.".format(card.location)

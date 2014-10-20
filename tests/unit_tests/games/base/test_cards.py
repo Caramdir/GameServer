@@ -151,6 +151,33 @@ class CardCollectionTest(unittest.TestCase):
         else:
             raise AssertionError("Shuffle does not seem to be random.")
 
+    def test_setitem(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2])
+
+        coll[0] = c3
+
+        self.assertEqual(2, len(coll))
+        self.assertEqual(c3, coll[0])
+        self.assertEqual(c2, coll[1])
+        self.assertNotIn(c1, coll)
+
+    def test_setitem_wrong_type(self):
+        c1, c2, = Card(), Card()
+        coll = CardCollection([c1, c2])
+
+        with self.assertRaises(AssertionError):
+            coll[0] = object()
+
+    def test_setitem_duplicate(self):
+        """
+        This should not throw an error (otherwise shuffling won't work).
+        """
+        c1, c2, = Card(), Card()
+        coll = CardCollection([c1, c2])
+
+        coll[0] = c2
+
 
 class LocationCardCollectionTest(unittest.TestCase):
     def test_init_from(self):
@@ -252,6 +279,26 @@ class LocationCardCollectionTest(unittest.TestCase):
         self.assertIsNone(c1.location)
         self.assertEqual(coll, c2.location)
         self.assertIsNone(c3.location)
+
+    def test_setitem(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2])
+
+        coll[0] = c3
+
+        self.assertIsNone(c1.location)
+        self.assertEqual(coll, c3.location)
+
+    def test_del(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2, c3])
+
+        del coll[1]
+
+        self.assertEqual(2, len(coll))
+        self.assertIn(c1, coll)
+        self.assertIn(c3, coll)
+        self.assertIsNone(c2.location)
 
 
 class TestPlayerRelatedCardCollection(unittest.TestCase):
