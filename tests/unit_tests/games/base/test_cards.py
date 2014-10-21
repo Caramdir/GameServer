@@ -162,6 +162,14 @@ class CardCollectionTest(unittest.TestCase):
         self.assertEqual(c2, coll[1])
         self.assertNotIn(c1, coll)
 
+    def test_setitem_slice(self):
+        c1, c2, c3, c4, c5 = Card(), Card(), Card(), Card(), Card()
+        coll = CardCollection([c1, c2, c3])
+
+        coll[0:2] = [c4, c5]
+
+        self.assertEqual([c4, c5, c3], list(coll))
+
     def test_setitem_wrong_type(self):
         c1, c2, = Card(), Card()
         coll = CardCollection([c1, c2])
@@ -286,8 +294,17 @@ class LocationCardCollectionTest(unittest.TestCase):
 
         coll[0] = c3
 
-        self.assertIsNone(c1.location)
         self.assertEqual(coll, c3.location)
+
+    def test_setitem_slice(self):
+        c1, c2, c3, c4, c5 = Card(), Card(), Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2, c3])
+
+        coll[0:2] = [c4, c5]
+
+        self.assertEqual(coll, c4.location)
+        self.assertEqual(coll, c5.location)
+        self.assertEqual([c4, c5, c3], list(coll))
 
     def test_del(self):
         c1, c2, c3 = Card(), Card(), Card()
@@ -299,6 +316,38 @@ class LocationCardCollectionTest(unittest.TestCase):
         self.assertIn(c1, coll)
         self.assertIn(c3, coll)
         self.assertIsNone(c2.location)
+
+    def test_del_slice(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2, c3])
+
+        del coll[1:]
+
+        self.assertEqual(1, len(coll))
+        self.assertIn(c1, coll)
+        self.assertIsNone(c2.location)
+        self.assertIsNone(c3.location)
+
+    def test_shuffle(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        coll = LocationCardCollection([c1, c2, c3])
+
+        coll.shuffle()
+
+        self.assertEqual(3, len(coll))
+        self.assertIn(c1, coll)
+        self.assertIn(c2, coll)
+        self.assertIn(c3, coll)
+        self.assertEqual(coll, c1.location)
+        self.assertEqual(coll, c2.location)
+        self.assertEqual(coll, c3.location)
+
+        for n in range(100):
+            if coll[0] != c1:
+                break
+            coll.shuffle()
+        else:
+            raise AssertionError("Shuffle does not seem to be random.")
 
 
 class TestPlayerRelatedCardCollection(unittest.TestCase):
