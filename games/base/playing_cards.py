@@ -39,6 +39,7 @@ for _i, _suit in enumerate([SPADE, HEART, DIAMOND, CLUB]):
 
 class Card(games.base.cards.Card):
     def __init__(self, rank, suit, value=0):
+        super().__init__()
         self.rank = str(rank).upper()
         if self.rank == "1":
             self.rank = "A"
