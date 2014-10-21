@@ -80,10 +80,7 @@ class Game(games.base.game.Game):
 
         self.deck = Deck(
             self,
-            games.base.playing_cards.get_cards(
-                20,
-                values={"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2},
-            )
+            games.base.playing_cards.get_cards({"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2})
         )
         self.trump = None
 
@@ -285,8 +282,8 @@ class Player(games.base.game.Player):
         }
 
     def draw(self, amount=1):
-        cards = self.game.deck.draw(amount, True, log=True, player=self)
-        self.hand.add(cards)
+        cards = self.game.deck.draw(amount, collection=True, log=True, player=self)
+        self.hand.extend(cards)
 
     @coroutine
     def play_card(self, lead_card=None):
@@ -367,7 +364,7 @@ class Player(games.base.game.Player):
             self.log.simple_add_entry("{Player} do{es} an exchange for " + str(self.game.deck.open_card) + ".")
             jack = self.hand.get_by_id(Card("J", self.game.trump).id)
             self.hand.remove(jack)
-            self.hand.add(self.game.deck.exchange_open(jack))
+            self.hand.append(self.game.deck.exchange_open(jack))
             return (yield self._play_card())
 
         if response["type"] == "close":
