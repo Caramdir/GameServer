@@ -1,6 +1,7 @@
 import json
 import logging
 import importlib
+import os
 
 import tornado.ioloop
 import tornado.web
@@ -263,8 +264,22 @@ class Server:
         self._config_overrides = {}
         configuration.add_override(self._config_overrides)
         self.games = {}
+        self._create_dynamic_files()
 
 #         self.sweeper = tornado.ioloop.PeriodicCallback(base.client.remove_inactive, 60000)
+
+    def _create_dynamic_files(self):
+        """
+        Create the various dynamically created files/directories necessary for running the server.
+        """
+        if not os.path.isdir(config.games_static_path):
+            os.makedirs(config.games_static_path)
+
+        if not os.path.isdir(config.log_path):
+            os.makedirs(config.log_path)
+
+        if not os.path.isdir(config.game_log_path):
+            os.makedirs(config.game_log_path)
 
     def start(self):
         logger.debug("Starting the server.")

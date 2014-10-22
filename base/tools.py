@@ -1,7 +1,7 @@
 # import warnings
 # import functools
 # import traceback
-# import os
+import os
 
 import tornado.template
 
@@ -78,7 +78,7 @@ def a_or_number(num, a="a"):
 template_loader = tornado.template.Loader(config["template_path"])
 
 
-# def ensure_symlink(source, name):
-#     if os.path.isfile(name):
-#         os.remove(name)
-#     os.symlink(source, name)
+def ensure_symlink(source, name):
+    if os.path.isfile(name):
+        os.remove(name)
+    os.symlink(source, name)

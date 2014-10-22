@@ -4,7 +4,7 @@ __pycache__
 localconfig.py
 logs
 game_logs
-static/schnapsen/
+static/games/
 templates/log_*.html
 users
 .idea

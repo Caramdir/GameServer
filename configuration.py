@@ -34,6 +34,9 @@ config = ConfigChainMap(dict(
     # The folder where static files are kept
     static_path=os.path.join(os.path.dirname(__file__), "static"),
 
+    # The folder where static files from games are put
+    games_static_path=os.path.join(os.path.dirname(__file__), "static/games"),
+
     # The folder where template files are kept
     template_path=os.path.join(os.path.dirname(__file__), "templates"),
 

@@ -605,7 +605,7 @@ games.lobby = function () {
 			min_players = params["min_players"];
 			max_players = params["max_players"];
 
-            loader.css("/static/" + lobby.current + "/game.css");
+            loader.css("/static/" + games_static_path + "/" + lobby.current + "/game.css");
             $("#automatch").hide();
             $("#lobby_propose_form").show();
 
@@ -624,7 +624,7 @@ games.lobby = function () {
             }
 
             games.lobby.game_specific_lobby = {};
-            loader.script("/static/" + lobby.current + "/game.js",
+            loader.script("/static/" + games_static_path + "/" + lobby.current + "/game.js",
                 function() {
                     if (games[lobby.current].lobby) {
                         games.lobby.game_specific_lobby = games[lobby.current].lobby
@@ -859,8 +859,8 @@ games.base = function() {
 
     return {
         init: function(params) {
-            loader.script("/static/" + params["game"] + "/game.js");
-            loader.css("/static/" + params["game"] + "/game.css");
+            loader.script("/static/" + games_static_path + "/" + params["game"] + "/game.js");
+            loader.css("/static/" + games_static_path + "/" + params["game"] + "/game.css");
             games.base.running = params["running"];
             games.base.resigned = params["resigned"];
             current_game = params["game"];
