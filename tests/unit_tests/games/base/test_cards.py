@@ -59,6 +59,7 @@ class CardCollectionTest(unittest.TestCase):
         self.assertEqual(2, len(coll))
         self.assertIn(c1, coll)
         self.assertIn(c2, coll)
+        self.assertEqual([c1, c2], list(coll))
 
     def test_append_wrong_type(self):
         coll = CardCollection()
@@ -398,3 +399,17 @@ class TestPlayerRelatedCardCollection(unittest.TestCase):
         self.assertEqual(2, len(copy))
         self.assertIn(c1, copy)
         self.assertIn(c2, copy)
+
+
+class DeckTestCase(unittest.TestCase):
+    def test_extend_bottom(self):
+        coll = Deck(Mock(), [Card(), Card()])
+        c1, c2 = Card(), Card()
+
+        coll.extend_bottom([c1, c2])
+
+        self.assertEqual(4, len(coll))
+        self.assertEqual(c1, coll[0])
+        self.assertEqual(c2, coll[1])
+        self.assertEqual(coll, c1.location)
+        self.assertEqual(coll, c2.location)

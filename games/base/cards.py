@@ -350,6 +350,11 @@ class Deck(LocationCardCollection):
         """
         pass
 
+    def extend_bottom(self, iterable):
+        assert all(isinstance(card, Card) for card in iterable)
+        self[:] = iterable + self
+        assert len(self) == len(set(self))
+
     def draw(self, amount=1, collection=False, log=False, player=None, reason=None):
         """Draw one or more cards from the supply.
 
