@@ -123,9 +123,9 @@ class Location:
         :type e: Exception
         """
         if isinstance(e, base.client.ClientCommunicationError):
-            self.system_message("Communication error. Expect weird things. [{}]".format(str(e)))
+            self.system_message("Communication error. Expect weird things. [{}]".format(html.escape(str(e))))
         else:
-            self.system_message("An error occurred. Expect weird things. [{}]".format(str(e)))
+            self.system_message("An error occurred. Expect weird things. [{}]".format(html.escape(str(e))))
 
     def anchor_coroutine(self, coroutine):
         future = coroutine()
