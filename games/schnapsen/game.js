@@ -64,24 +64,27 @@ games.schnapsen = function() {
             }
         },
 
-		play_turn : function(params) {
+		play_turn : function(params, promise) {
             var i;
             var choices = [];
 			for (i=0; i < params.options.length; i++) {
-                var choice = {response: {id: params.id}};
+                var choice = {
+                    data: {type: params["options"][i]["type"]},
+                    handler: function (data) {
+                        promise.resolve(data);
+                    }
+                };
                 switch (params.options[i].type) {
                     case "exchange":
                         choice.text = "Exchange the trump jack for the open card.";
-                        choice.response.type = "exchange";
                         break;
                     case "close":
                         choice.text = "Close the stock.";
-                        choice.response.type = "close";
                         break;
                     case "marriage":
                         choice.text = "Play a marriage of " + params.options[i]["suit_html"] + ".";
-                        choice.response.type = "marriage";
-                        choice.response.suit = params.options[i].suit;
+                        choice.data.suit = params.options[i].suit;
+                        break;
                 }
                 choices.push(choice);
 			}
@@ -90,7 +93,7 @@ games.schnapsen = function() {
                 null,
                 $("#hand .card"),
                 function (e) {
-                    send_response({id: params.id, type: "card", card: e.attr("id")});
+                    promise.resolve({type: "card", card: e.attr("id")});
                 },
                 function () {
                     return params.cards.indexOf($(this).attr("id")) !== -1;

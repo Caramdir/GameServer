@@ -11,7 +11,7 @@ class InterfaceTestCase(AsyncTestCase):
         ui = UI(c)
 
         f = ui.ask_choice("Question?", ["x", "y", "z"])
-        c.mock_response({"value": 1})
+        c.mock_response(1)
 
         result = yield f
         self.assertEqual(result, 1)
@@ -22,7 +22,7 @@ class InterfaceTestCase(AsyncTestCase):
         ui = UI(c)
 
         f = ui.ask_yes_no("Question?")
-        c.mock_response({"value": 1})
+        c.mock_response(1)
 
         result = yield f
         self.assertFalse(result)
@@ -33,7 +33,7 @@ class InterfaceTestCase(AsyncTestCase):
         ui = UI(c)
 
         f = ui.ask_yes_no("Question?")
-        c.mock_response({"value": 0})
+        c.mock_response(0)
 
         result = yield f
         self.assertTrue(result)

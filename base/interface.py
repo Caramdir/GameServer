@@ -36,7 +36,7 @@ class UI():
             )
 
             try:
-                i = int(result["value"])
+                i = int(result)
                 if not (0 <= i < len(answers)):
                     continue
                 return i

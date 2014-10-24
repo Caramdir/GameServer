@@ -399,28 +399,46 @@ class Client:
         This function returns a Future, that will receive the response when the query completes.
         This future is intended to be `yield`ed from a coroutine.
 
+        On the JS side this will call the function `command` with the three parameters:
+         * `params`: `kwargs` (i.e. the actual parameters).
+         * `promise`: A `Deferred` object that should be resolved with the return value.
+         * `query_id`: The query id (can be used as a unique identifier in HTML id's).
+
         :param command: The UI command.
         :param kwargs: The parameters to the command.
         :return: A future which will receive the response (which is always a dict).
         :rtype: Future
         """
-        query = kwargs
-        query["command"] = command
-        query["id"] = self._get_next_query_id()
+        query = {
+            "command": command,
+            "query_id": self._get_next_query_id(),
+            "parameters": kwargs,
+        }
         future = Future()
-        self._queries[query["id"]] = {"query": query, "future": future}
+        self._queries[query["query_id"]] = {"query": query, "future": future}
         self.send_message(query)
         return future
 
     def post_response(self, response):
-        """Handle a response."""
+        """
+        Handle a response.
+
+        Responses are a `dict` with keys `id` (the query id) and `value` (the return value).
+        This should only be called from the corresponding `RequestHandler` in `server.py`.
+        On the JS side a response is created by resolving the `Deferred` object corresponding
+        to the query.
+        """
         self.touch()
-        id_ = int(response["id"])
         try:
-            self._queries[id_]["future"].set_result(response)
-            del self._queries[id_]
+            id_ = int(response["id"])
+            value = response["value"]
+        except KeyError:
+            raise ClientCommunicationError(self, response, "Invalid response format")
+        try:
+            self._queries[id_]["future"].set_result(value)
         except KeyError:
             raise ClientCommunicationError(self, response, "Invalid query id.")
+        del self._queries[id_]
 
     def cancel_interactions(self, exception=None):
         """
@@ -467,10 +485,13 @@ class MockClient(Client):
         self.messages.append(msg)
 
     def query(self, command, **kwargs):
-        query = kwargs
-        query["command"] = command
+        query = dict(
+            command=command,
+            parameters=kwargs,
+        )
         future = Future()
         self.queries.append({"query": query, "future": future})
+        query["query_id"] = len(self.queries) - 1
         self.send_message(query)
         return future
 

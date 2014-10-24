@@ -68,13 +68,27 @@ var command_loop = (function() {
         var fn = eval(command);
         if (fn) {
             // console.log("Running command: " + command);
-            fn(message);
+            if ("query_id" in message) {
+                var deferred = $.Deferred();
+                deferred.then(function(retVal) { send_response(message["query_id"], retVal)});
+                fn(message["parameters"], deferred, message["query_id"]);
+            } else {
+                fn(message);
+            }
         } else {
             console.log("Unknown command: " + command);
         }
         in_iteration = false;
         run_iteration();
     };
+
+    function send_response(query_id, retVal) {
+        $.ajax({
+            type : "POST",
+            url : "/response?session_id=" + session_id,
+            data : JSON.stringify({id: query_id, value: retVal})
+        });
+    }
 
     return {
         add: function(command) {
@@ -145,14 +159,6 @@ function send_request(data) {
 	$.ajax({
 		type : "POST",
 		url : "/request?session_id=" + session_id,
-		data : JSON.stringify(data)
-	});
-}
-
-function send_response(data) {
-	$.ajax({
-		type : "POST",
-		url : "/response?session_id=" + session_id,
 		data : JSON.stringify(data)
 	});
 }
@@ -259,8 +265,8 @@ ui = function () {
         scroll_to_bottom($("#interactions"));
     };
 
-    var choice = function (params) {
-        var div = $("<div />", {id : "interaction_" + params["id"]});
+    var choice = function (params, promise, query_id) {
+        var div = $("<div />", {id : "interaction_" + query_id});
 
         if (params["question"]) {
             var q = $("<span />", {html: params["question"]});
@@ -282,11 +288,11 @@ ui = function () {
                 html : params["answers"][i],
                 href : "#"});
             a.click(
-                {id : params["id"], reply : i},
+                {reply : i},
                 function (event) {
-                    send_response({id: event.data.id, value : event.data.reply});
-                    $("#interaction_" + event.data.id).remove();
+                    $("#interaction_" + query_id).remove();
                     scroll_to_bottom($("#interactions"));
+                    promise.resolve(event.data.reply);
                     return false;
                 }
             );
@@ -893,18 +899,17 @@ games.base.cards = (function() {
      * We assume that the hand is displayed in div#hand and the individual cards are .card.
      */
     return {
-        select: function(data) {
+        select: function(params, promise) {
             cancel_interactions();
             games.tools.select_objects(
-                data["prompt"],
-                data["minimum"],
-                data["maximum"],
+                params["prompt"],
+                params["minimum"],
+                params["maximum"],
                 $("#hand .card"),
                 function(selected) {
-                    send_response({
-						"id" : data.id,
-						"choices" : selected.map(function () {return parseInt($(this).data("id"))}).toArray(),
-					});
+                    promise.resolve(
+                        selected.map(function () {return parseInt($(this).data("id"))}).toArray()
+                    );
                 }
             );
          },
@@ -966,8 +971,9 @@ games.tools = function() {
          * filter: This function is used to filter out a subset of the objects to make clickable.
          *         The rest will be marked .disabled. (Use $(this) to get the object.)
          * choices: Additional choices that the player can take. An array where each entry is a
-         *          dictionary with entries [text] (displayed to the user) and [response] (sent
-         *          to the server if selected).
+         *          dictionary with entries `text` (displayed to the user), `handler` (a function
+         *          that is called if the choice is selected) and `data` (will be passed to the
+         *          handler).
          */
 		if (typeof(filter) === "undefined") filter = function() {return true;};
 
@@ -984,10 +990,10 @@ games.tools = function() {
                     html: choices[i].text,
                     href: "#",
                 });
-                a.click(choices[i].response, function(event) {
+                a.click(choices[i], function(event) {
                     objects.removeClass("selectable disabled selected unselected").off("click");
                     $("#interactions").empty();
-                    send_response(event.data);
+                    event.data.handler(event.data.data)
                 });
                 c.append(a);
             }

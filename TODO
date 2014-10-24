@@ -34,10 +34,7 @@ Mid-term
   • Make the about box nicer.
 * Code improvements
   • Abstract out console.log(), so that there is no problem with IE.
-  • Don't do /wait/NaN, /request/NaN, etc.
-  • JS: General ui function should be put into the ui module.
   • (Clean up circular references when game ends.)
-  • Make passing the id in a response more automatic.
   • Do logging correctly.
   • Add forEach to array prototype if not available.
   • Rename the old json parameters (to data, params, ...)

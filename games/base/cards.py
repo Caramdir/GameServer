@@ -272,7 +272,7 @@ class Hand(PlayerRelatedCardCollection, LocationCardCollection):
                 "games.base.cards.select",
                 prompt=prompt, minimum=minimum, maximum=maximum
             )
-            choices = self.get_by_ids(reply["choices"])
+            choices = self.get_by_ids(reply)
             if not minimum <= len(choices) <= maximum:
                 raise ClientCommunicationError(self.player.client, reply, "Selected wrong amount of cards.")
         else:

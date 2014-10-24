@@ -141,14 +141,14 @@ class ClientTestCase(AsyncTestCase):
         f = c.query("a_command", param1="foo", param2="bar")
 
         self.assertEqual("a_command", c.send_message.call_args[0][0]["command"])
-        self.assertEqual("foo", c.send_message.call_args[0][0]["param1"])
-        self.assertEqual("bar", c.send_message.call_args[0][0]["param2"])
+        self.assertEqual("foo", c.send_message.call_args[0][0]["parameters"]["param1"])
+        self.assertEqual("bar", c.send_message.call_args[0][0]["parameters"]["param2"])
 
-        id_ = c.send_message.call_args[0][0]["id"]
-        c.post_response({"id": id_, "foo": "bar"})
+        id_ = c.send_message.call_args[0][0]["query_id"]
+        c.post_response({"id": id_, "value": "bar"})
         r = yield f
 
-        self.assertEqual({"id": id_, "foo": "bar"}, r)
+        self.assertEqual("bar", r)
 
     @gen_test
     def test_cancel_interactions(self):
