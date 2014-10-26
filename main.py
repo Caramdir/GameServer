@@ -1,7 +1,9 @@
 import server
+from configuration import config
 
 instance = server.get_instance()
 
-instance.add_game("schnapsen")
+for game in config["games"]:
+    instance.add_game(game)
 
 instance.start()

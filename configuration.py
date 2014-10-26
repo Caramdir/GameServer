@@ -73,6 +73,9 @@ config = ConfigChainMap(dict(
 
     # Whether to allow cheats (useful for testing).
     cheats_enabled=False,
+
+    # These games are available.
+    games=["schnapsen"]
 ))
 
 
