@@ -30,51 +30,54 @@ class GameProposal():
         """
         self.lobby = lobby
         self.clients = set(clients)
-#         self._validate_client_number()
+        self._validate_client_number()
         self.options = {}
         self.accepted = set()
         self.is_accepted = False
         self.is_declined = False
         self.invited = set()    # Clients who have already been invited.
                                 # We need this so that non-invited clients don't get a cancellation notice.
-#         self._validate_and_set_options(options)
+        self._validate_and_set_options(options)
 
         lobby.proposals.add(self)
         lobby.anchor_coroutine(self._do_proposal)
 
-#     def _validate_client_number(self):
-#         """Check whether the right amount of players was selected."""
-#         if self.lobby.min_players == self.lobby.max_players:
-#             if len(self.clients) != self.lobby.min_players:
-#                 raise GameProposalCreationError(
-#                     "You need to select exactly {} other player{}.".format(
-#                         self.lobby.min_players-1,
-#                         plural_s(self.lobby.min_players-1)
-#                     )
-#                 )
-#         else:
-#             if len(self.clients) < self.lobby.min_players:
-#                 raise GameProposalCreationError(
-#                     "You need to select at least {} other player{}.".format(
-#                         self.lobby.min_players-1,
-#                         plural_s(self.lobby.min_players-1))
-#                 )
-#             if len(self.clients) > self.lobby.max_players:
-#                 raise GameProposalCreationError(
-#                     "You need to select at most {} other player{}.".format(
-#                         self.lobby.max_players-1,
-#                         plural_s(self.lobby.max_players-1))
-#                 )
+    def _validate_client_number(self):
+        """
+        Check whether the right amount of players was selected.
+        """
+        if self.lobby.min_players == self.lobby.max_players:
+            if len(self.clients) != self.lobby.min_players:
+                raise GameProposalCreationError(
+                    "You need to select exactly {} other player{}.".format(
+                        self.lobby.min_players-1,
+                        plural_s(self.lobby.min_players-1)
+                    )
+                )
+        else:
+            if len(self.clients) < self.lobby.min_players:
+                raise GameProposalCreationError(
+                    "You need to select at least {} other player{}.".format(
+                        self.lobby.min_players-1,
+                        plural_s(self.lobby.min_players-1))
+                )
+            if len(self.clients) > self.lobby.max_players:
+                raise GameProposalCreationError(
+                    "You need to select at most {} other player{}.".format(
+                        self.lobby.max_players-1,
+                        plural_s(self.lobby.max_players-1))
+                )
 
-#     #noinspection PyMethodMayBeStatic
-#     def _validate_and_set_options(self, options):
-#         """Validate options and store them.
-#
-#         Implementing subclasses should always call super().validate_and_set_options first,
-#         in case there will be some default options in the future.
-#         In case of invalid options, InvalidGameOptionsError.
-#         """
-#         pass
+    #noinspection PyMethodMayBeStatic
+    def _validate_and_set_options(self, options):
+        """
+        Validate options and store them.
+
+        Implementing subclasses should always call super().validate_and_set_options first,
+        in case there will be some default options in the future.
+        In case of invalid options, InvalidGameOptionsError should be raised.
+        """
+        pass
 
     @coroutine
     def _do_proposal(self):
