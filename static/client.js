@@ -869,6 +869,7 @@ games.base = function() {
             loader.css("/static/" + games_static_path + "/" + params["game"] + "/game.css");
             games.base.running = params["running"];
             games.base.resigned = params["resigned"];
+            games.base.players = params["players"];
             current_game = params["game"];
             ui.title.set(available_games[current_game]);
         },
@@ -884,6 +885,8 @@ games.base = function() {
         },
 
         resigned: false,
+
+        players: {},
 
         display_end_message: display_end_message,
         display_return_to_lobby_link: display_return_to_lobby_link,

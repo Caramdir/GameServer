@@ -338,8 +338,8 @@ class Tableau(PlayerRelatedCardCollection, LocationCardCollection):
 
 class Deck(LocationCardCollection):
     """A deck of cards (from which one can draw a card)."""
-    def __init__(self, game, *args):
-        super().__init__(*args)
+    def __init__(self, game, iterable=None):
+        super().__init__(iterable)
         self.game = game
 
     def _on_empty_deck(self, player):

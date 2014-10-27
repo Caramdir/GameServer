@@ -68,6 +68,8 @@ class Deck(games.base.cards.Deck):
 
         open_trump = self.open_card
         self[0] = card
+        card.location = self
+        open_trump.location = None
         self.game.trigger_game_ui_update()
         return open_trump
 
