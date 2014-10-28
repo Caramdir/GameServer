@@ -4,9 +4,15 @@
 import os
 
 import tornado.template
+import tornado.gen
 
 from configuration import config
 
+
+def coroutine(func):
+    f = tornado.gen.coroutine(func)
+    f._coroutine = True
+    return f
 
 # def deprecated(func):
 #     """This is a decorator which can be used to mark functions

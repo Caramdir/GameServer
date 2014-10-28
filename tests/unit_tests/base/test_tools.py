@@ -1,6 +1,26 @@
 from unittest import TestCase
+from tornado.testing import AsyncTestCase, gen_test
+import tornado.gen
+import tornado.concurrent
 
 from base.tools import *
+
+
+class TestCoroutine(AsyncTestCase):
+    @gen_test
+    def test_coroutine(self):
+        @coroutine
+        def test_func():
+            yield tornado.gen.moment
+            return 2
+
+        f = test_func()
+
+        self.assertTrue(isinstance(f, tornado.concurrent.Future))
+
+        r = yield f
+
+        self.assertEqual(2, r)
 
 
 class TestEnglishJoinList(TestCase):
