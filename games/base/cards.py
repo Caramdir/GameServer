@@ -110,7 +110,7 @@ class CardCollection(list):
         """Shuffle the collection."""
         random.shuffle(self)
 
-    def get_by_ids(self, ids):
+    def get_by_ids(self, *ids):
         """Get the cards with the given ids."""
         return [c for c in self if c.id in ids]
 
