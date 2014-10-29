@@ -36,6 +36,9 @@ class TestEnglishJoinList(TestCase):
     def test_three(self):
         self.assertEqual("Foo, Bar and foobar", english_join_list(["Foo", "Bar", "foobar"]))
 
+    def test_other_word(self):
+        self.assertEqual("Foo, Bar or foobar", english_join_list(["Foo", "Bar", "foobar"], "or"))
+
 
 class TestPluralS(TestCase):
     def test_minustwo(self):

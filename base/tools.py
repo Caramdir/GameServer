@@ -40,7 +40,7 @@ def coroutine(func):
 #     return new_func
 
 
-def english_join_list(l):
+def english_join_list(l, conjunction="and"):
     """
     Join a list of strings into a comma and "and"-separated string.
 
@@ -54,9 +54,10 @@ def english_join_list(l):
         return ""
     if len(l) == 1:
         return l[0]
+    conjunction = " " + conjunction + " "
     if len(l) == 2:
-        return l[0] + " and " + l[1]
-    return ", ".join(l[0:-1]) + " and " + l[-1]
+        return l[0] + conjunction + l[1]
+    return ", ".join(l[0:-1]) + conjunction + l[-1]
 
 
 def plural_s(num, s="s"):
