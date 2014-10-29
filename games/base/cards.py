@@ -224,9 +224,9 @@ class PlayerRelatedCardCollection(CardCollection):
         self._trigger_ui_update()
         return card
 
-    def remove(self, cards):
-        """Trigger a UI update on removing cards from the collection."""
-        super().remove(cards)
+    def remove(self, card):
+        # todo: a remove_collection() call will trigger a separate ui update for each card.
+        super().remove(card)
         self._trigger_ui_update()
 
 
