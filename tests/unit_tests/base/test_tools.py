@@ -22,6 +22,19 @@ class TestCoroutine(AsyncTestCase):
 
         self.assertEqual(2, r)
 
+    def test_iscoroutine(self):
+        @coroutine
+        def test_func():
+            pass
+
+        self.assertTrue(iscoroutine(test_func))
+
+    def test_isnotcoroutine(self):
+        def test_func():
+            pass
+
+        self.assertFalse(iscoroutine(test_func))
+
 
 class TestEnglishJoinList(TestCase):
     def test_empty(self):
