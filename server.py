@@ -58,7 +58,10 @@ class PollHandler(BaseHandler):
         if self.request.connection.stream.closed():
             return
         msgs = self.current_user.messages.get_all()
-        self.finish(json.dumps(msgs).encode())
+        try:
+            self.finish(json.dumps(msgs).encode())
+        except TypeError:
+            raise TypeError("Can't serialize {}.".format(msgs))
 
     def disconnect_old_connection(self):
         """This is an old connection. Disconnect and show an error message to the user."""
