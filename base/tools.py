@@ -1,5 +1,5 @@
 # import warnings
-# import functools
+import functools
 # import traceback
 import os
 
@@ -9,14 +9,42 @@ import tornado.gen
 from configuration import config
 
 
+def decorator(d):
+    """
+    A decorator to mark decorators.
+
+    This makes the decorated decorator mark the returned function, i.e. the new
+    function will have a ̀decorators̀ attribute with a list containing all
+    decorators applied to the function. The decorators are listed in order they were
+    applied. Only decorators marked with this decorator are contained in ̀decorators̀.
+
+    This currently only works on decorators that do not take parameters.
+    """
+    @functools.wraps(d)
+    def wrapper(func):
+        new = d(func)
+        if hasattr(func, "decorators"):
+            new.decorators = func.decorators.copy()
+        else:
+            new.decorators = []
+        new.decorators.append(d.__name__)
+        return new
+    return wrapper
+
+
+@decorator
 def coroutine(func):
-    f = tornado.gen.coroutine(func)
-    f._coroutine = True
-    return f
+    """
+    A wrapper around tornado.gen.coroutine, that marks the function as a coroutine.
+    """
+    return tornado.gen.coroutine(func)
 
 
 def iscoroutine(f):
-    return hasattr(f, "_coroutine") and f._coroutine
+    """
+    Check whether a function is a coroutine (i.e. is decorated with base.tools.coroutine).
+    """
+    return hasattr(f, "decorators") and "coroutine" in f.decorators
 
 
 # def deprecated(func):

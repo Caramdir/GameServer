@@ -6,6 +6,43 @@ import tornado.concurrent
 from base.tools import *
 
 
+class DecoratorTest(TestCase):
+    def test_single(self):
+        @decorator
+        def a_decorator(f):
+            def func():
+                f()
+            return func
+
+        @a_decorator
+        def foo():
+            pass
+
+        self.assertTrue(hasattr(foo, "decorators"))
+        self.assertEqual(["a_decorator"], foo.decorators)
+
+    def test_double(self):
+        @decorator
+        def a_decorator(f):
+            def func():
+                f()
+            return func
+
+        @decorator
+        def b_decorator(f):
+            def func():
+                f()
+            return func
+
+        @a_decorator
+        @b_decorator
+        def foo():
+            pass
+
+        self.assertTrue(hasattr(foo, "decorators"))
+        self.assertEqual(["b_decorator", "a_decorator"], foo.decorators)
+
+
 class TestCoroutine(AsyncTestCase):
     @gen_test
     def test_coroutine(self):
@@ -21,6 +58,14 @@ class TestCoroutine(AsyncTestCase):
         r = yield f
 
         self.assertEqual(2, r)
+
+    def test_decoration(self):
+        @coroutine
+        def foo():
+            pass
+
+        self.assertTrue(hasattr(foo, "decorators"))
+        self.assertEqual(["coroutine"], foo.decorators)
 
     def test_iscoroutine(self):
         @coroutine
