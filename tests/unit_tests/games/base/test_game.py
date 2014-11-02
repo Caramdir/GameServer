@@ -2,8 +2,9 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from base.client import MockClient
+from base.tools import coroutine, iscoroutine
 
-from games.base.game import Game, WaitingMessageContextManager
+from games.base.game import Game, WaitingMessageContextManager, PlayerMeta
 
 
 def get_mock_player():
@@ -41,3 +42,18 @@ class WaitingMessageContextManagerTestCase(TestCase):
         self.assertEqual(2, len(player2.client.messages))
         self.assertIn({"command": "games.base.remove_waiting_message"}, player3.client.messages)
         self.assertEqual(2, len(player3.client.messages))
+
+
+class PlayerMetaTestCase(TestCase):
+    def test_coroutine_replacement(self):
+        class Foo(metaclass=PlayerMeta):
+            @coroutine
+            def bar(self):
+                pass
+
+        f = Foo()
+
+        self.assertTrue(hasattr(f.bar, "decorators"))
+        self.assertIn("_player_activity", f.bar.decorators)
+        self.assertIn("coroutine", f.bar.decorators)
+        self.assertTrue(iscoroutine(f.bar))

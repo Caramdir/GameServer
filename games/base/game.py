@@ -10,12 +10,39 @@ import base.client
 import base.locations
 import games.base.log
 from games.base.log import PlayerLogFacade, GameLogEntry
-from base.tools import english_join_list, singular_s
+from base.tools import english_join_list, singular_s, iscoroutine, decorator
 
 logger = logging.getLogger(__name__)
 
 
-class Player():
+@decorator
+def _player_activity(func):
+    """
+    Decorator for ̀Player̀ methods with player activity, i.e. which call ̀client.query()̀.
+
+    This decorator is applied automatically to all coroutines in Player subclasses by
+    the ̀PlayerMetà meta class. It currently does nothing, but it will be used to
+    keep track of the active player to show "waiting for" messages (and maybe resign them
+    if they take too long).
+    """
+    return func
+
+
+class PlayerMeta(type):
+    """
+    Meta class for Player objects.
+    """
+    def __new__(mcs, name, bases, dct):
+        """
+        Decorate all coroutines additionally with ̀_player_activitỳ.
+        """
+        for attr in dct:
+            if iscoroutine(dct[attr]):
+                dct[attr] = _player_activity(dct[attr])
+        return super().__new__(mcs, name, bases, dct)
+
+
+class Player(metaclass=PlayerMeta):
     """
     The player class represents a player of the game.
 
