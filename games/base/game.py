@@ -4,6 +4,7 @@ Base classes for games.
 
 import random
 import logging
+import functools
 
 import server
 import base.client
@@ -25,7 +26,17 @@ def _player_activity(func):
     keep track of the active player to show "waiting for" messages (and maybe resign them
     if they take too long).
     """
-    return func
+    assert iscoroutine(func)
+
+    @functools.wraps(func)
+    def wrapper(player, *args, **kwargs):
+        assert isinstance(player, Player)
+        player.start_activity()
+        future = func(player, *args, **kwargs)
+        future.add_done_callback(player.end_activity)
+        return future
+
+    return wrapper
 
 
 class PlayerMeta(type):
@@ -71,6 +82,12 @@ class Player(metaclass=PlayerMeta):
         :type log: Log
         """
         self.log = PlayerLogFacade(log, self)
+
+    def start_activity(self, waiting_message=None):
+        self.game.waiting_messages_manager.start_activity(self, waiting_message)
+
+    def end_activity(self):
+        self.game.waiting_messages_manager.end_activity(self)
 
     def full_ui_update(self):
         """Completely update the UI sending information about ourselves and the other players."""
@@ -388,3 +405,107 @@ class WaitingMessageContextManager:
             if player != self.player:
                 player.client.remove_permanent_messages(self)
                 player.client.send_message({"command": "games.base.remove_waiting_message"})
+
+
+class WaitingMessagesManager:
+    def __init__(self, game):
+        self.game = game
+        self._messages = {player: [] for player in game.all_players}
+        self.default_message = "Waiting for {}."
+        self.plural_message = "Waiting for {}."
+
+    @property
+    def several_players_are_active(self):
+        return len(self.active_players) >= 2
+
+    @property
+    def active_players(self):
+        """
+        A list of players who a currently doing an activity (i.e. we are waiting for them to finish).
+        """
+        return [player for player in self._messages if self._messages[player]]
+
+    @property
+    def waiting_players(self):
+        """
+        A list of players who a currently waiting for the other player(s) to finish some activity.
+        """
+        waiting = [player for player in self._messages if not self._messages[player]]
+        if len(waiting) == len(self._messages):
+            return []
+        return waiting
+
+    @property
+    def current_message(self):
+        if self.several_players_are_active:
+            return self.plural_message.format(english_join_list(self.active_players))
+        elif self.active_players:
+            return self._messages[self.active_players[0]][-1]
+        else:
+            return None
+
+    def start_activity(self, player, message=None):
+        """
+        A player starts an activity.
+
+        :param player: The player starting the activity.
+        :param message: The message to display to others. ̀{}̀ will be replaced by the player's
+                        name. If ̀Nonè, then either the last message (if this is a sub-activity)
+                        or the default message will be used.
+        """
+        if message:
+            message = message.format(player)
+        if self._messages[player]:
+            self._start_subactivity(player, message)
+        else:
+            self._start_first_activity(player, message)
+            pass
+
+    def _start_subactivity(self, player, message):
+        if message is None:
+            message = self._messages[player][-1]
+
+        self._messages[player].append(message)
+
+        if not self.several_players_are_active:
+            if message != self._messages[player][-2]:
+                self._send_messages_to_all()
+
+    def _start_first_activity(self, player, message):
+        if message is None:
+            message = self.default_message.format(player)
+
+        if self.active_players:
+            self._clear_messages_for(player)
+
+        self._messages[player].append(message)
+        self._send_messages_to_all()
+
+    def end_activity(self, player):
+        if self.several_players_are_active:
+            self._messages[player].pop()
+            if not self._messages[player]:
+                self._send_messages_to_all()
+        else:
+            old_msg = self._messages[player].pop()
+            if self._messages[player]:
+                if old_msg != self._messages[player][-1]:
+                    self._send_messages_to_all()
+            else:
+                self._clear_all_messages()
+
+    def _send_message_to(self, player, message):
+        pass
+
+    def _send_messages_to_all(self):
+        message = self.current_message
+        for player in self.waiting_players:
+            self._send_message_to(player, message)
+
+    def _clear_messages_for(self, player):
+        pass
+
+    def _clear_all_messages(self):
+        assert not self.active_players
+        for player in self._messages:
+            self._clear_messages_for(player)
