@@ -475,6 +475,7 @@ class InteractionCancelledException(Exception):
 
 
 class MockClient(Client):
+    # todo: this should be moved to tests
     def __init__(self, id_=0, name="Mock Client"):
         super().__init__(id_, name)
         self.messages = []
@@ -505,6 +506,10 @@ class MockClient(Client):
         for q in self.queries:
             if not q["future"].done():
                 q["future"].set_exception(exception)
+
+    def assert_has_permanent_message(self, group, message):
+        if (group, message) not in self._permanent_messages:
+            raise AssertionError("Expected permanent message {} in group {} not found.".format(message, group))
 
 
 class NullClient():

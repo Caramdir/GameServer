@@ -372,3 +372,20 @@ class MockClientTest(AsyncTestCase):
         with self.assertRaises(Exception) as cm:
             yield f
         self.assertEqual(e, cm.exception)
+
+    def test_assert_has_permanent_message(self):
+        c = base.client.MockClient()
+
+        with self.assertRaises(AssertionError):
+            c.assert_has_permanent_message(object(), {"command": "bla"})
+
+        c.send_permanent_message(self, {"command": "bla"})
+
+        c.assert_has_permanent_message(self, {"command": "bla"})
+
+        with self.assertRaises(AssertionError):
+            c.assert_has_permanent_message(self, {"command": "bar"})
+
+        with self.assertRaises(AssertionError):
+            c.assert_has_permanent_message(object(), {"command": "bla"})
+
