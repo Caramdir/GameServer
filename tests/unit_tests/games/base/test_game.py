@@ -145,11 +145,118 @@ class WaitingMessagesManagerTest(TestCase):
 
         self.assertEqual("Baz bar.", self.wmm.current_message)
 
-    def test_one_player_active_twice(self): #same message/different message
-        pass
+    def test_one_player_active_twice_same_message(self):
+        self.wmm._send_message_to = Mock()
+        self.wmm._clear_messages_for = Mock()
+
+        self.wmm.start_activity(self.player1, "Foo")
+
+        self.wmm._send_message_to.reset_mock()
+
+        self.wmm.start_activity(self.player1, "Foo")
+
+        self.assertEqual(0, self.wmm._send_message_to.call_count)
+
+        self.wmm.end_activity(self.player1)
+
+        self.assertEqual(0, self.wmm._clear_messages_for.call_count)
+
+        self.wmm.end_activity(self.player1)
+
+        self.assertIn(call(self.player2), self.wmm._clear_messages_for.call_args_list)
+        self.assertIn(call(self.player3), self.wmm._clear_messages_for.call_args_list)
+
+    def test_one_player_active_twice_different_message(self):
+        self.wmm._send_message_to = Mock()
+        self.wmm._clear_messages_for = Mock()
+
+        self.wmm.start_activity(self.player1, "Foo")
+
+        self.wmm._send_message_to.reset_mock()
+
+        self.wmm.start_activity(self.player1, "Bar")
+
+        self.assertEqual(2, self.wmm._send_message_to.call_count)
+        self.assertIn(call(self.player2, "Bar"), self.wmm._send_message_to.call_args_list)
+        self.assertIn(call(self.player3, "Bar"), self.wmm._send_message_to.call_args_list)
+        self.wmm._send_message_to.reset_mock()
+
+        self.wmm.end_activity(self.player1)
+
+        self.assertEqual(0, self.wmm._clear_messages_for.call_count)
+        self.assertEqual(2, self.wmm._send_message_to.call_count)
+        self.assertIn(call(self.player2, "Foo"), self.wmm._send_message_to.call_args_list)
+        self.assertIn(call(self.player3, "Foo"), self.wmm._send_message_to.call_args_list)
+
+        self.wmm.end_activity(self.player1)
+
+        self.assertIn(call(self.player2), self.wmm._clear_messages_for.call_args_list)
+        self.assertIn(call(self.player3), self.wmm._clear_messages_for.call_args_list)
+
+    def test_one_player_active_twice_messages(self):
+        self.player1.__str__.return_value = "bar"
+
+        self.wmm.start_activity(self.player1, "Baz {}.")
+        self.wmm.start_activity(self.player1, "Foo")
+
+        self.assertEqual("Foo", self.wmm.current_message)
+
+        self.wmm.start_activity(self.player1, "Foo {}.")
+
+        self.assertEqual("Foo bar.", self.wmm.current_message)
+
+        self.wmm.end_activity(self.player1)
+
+        self.assertEqual("Foo", self.wmm.current_message)
 
     def test_two_players_active(self):
-        pass
+        self.wmm._send_message_to = Mock()
+        self.wmm._clear_messages_for = Mock()
+        self.wmm.plural_message = "xxx"
+
+        self.wmm.start_activity(self.player1, "Foo")
+        self.wmm._send_message_to.reset_mock()
+        self.wmm.start_activity(self.player2, "Bar")
+
+        self.assertEqual(1, self.wmm._send_message_to.call_count)
+        self.assertIn(call(self.player3, "xxx"), self.wmm._send_message_to.call_args_list)
+        self.assertEqual(1, self.wmm._clear_messages_for.call_count)
+        self.assertIn(call(self.player2), self.wmm._clear_messages_for.call_args_list)
+
+        self.wmm._send_message_to.reset_mock()
+        self.wmm._clear_messages_for.reset_mock()
+        self.wmm.end_activity(self.player1)
+
+        self.assertEqual(0, self.wmm._clear_messages_for.call_count)
+        self.assertEqual(2, self.wmm._send_message_to.call_count)
+        self.assertIn(call(self.player1, "Bar"), self.wmm._send_message_to.call_args_list)
+        self.assertIn(call(self.player3, "Bar"), self.wmm._send_message_to.call_args_list)
+
+    def test_two_players_active_message(self):
+        self.player1.__str__.return_value = "bar"
+        self.player2.__str__.return_value = "baz"
+        self.wmm.plural_message = "x {} x"
+
+        self.wmm.start_activity(self.player1)
+        self.wmm.start_activity(self.player2)
+
+        self.assertIn(self.wmm.current_message, ["x bar and baz x", "x baz and bar x"])
 
     def test_two_players_active_twice(self):
-        pass
+        self.wmm._send_message_to = Mock()
+        self.wmm._clear_messages_for = Mock()
+        self.wmm.plural_message = "xxx"
+
+        self.wmm.start_activity(self.player1, "Foo")
+        self.wmm.start_activity(self.player2, "Bar")
+        self.wmm._send_message_to.reset_mock()
+        self.wmm._clear_messages_for.reset_mock()
+        self.wmm.start_activity(self.player2, "Baz")
+
+        self.assertEqual(0, self.wmm._clear_messages_for.call_count)
+        self.assertEqual(0, self.wmm._send_message_to.call_count)
+
+        self.wmm.end_activity(self.player2)
+
+        self.assertEqual(0, self.wmm._clear_messages_for.call_count)
+        self.assertEqual(0, self.wmm._send_message_to.call_count)
