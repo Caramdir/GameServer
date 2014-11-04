@@ -495,7 +495,14 @@ class WaitingMessagesManager:
                 self._clear_all_messages()
 
     def _send_message_to(self, player, message):
-        pass
+        player.client.remove_permanent_messages(self)
+        player.client.send_permanent_message(
+            self,
+            {
+                "command": "games.base.show_waiting_message",
+                "message": message
+            }
+        )
 
     def _send_messages_to_all(self):
         message = self.current_message
@@ -503,7 +510,8 @@ class WaitingMessagesManager:
             self._send_message_to(player, message)
 
     def _clear_messages_for(self, player):
-        pass
+        player.client.remove_permanent_messages(self)
+        player.client.send_message({"command": "games.base.remove_waiting_message"})
 
     def _clear_all_messages(self):
         assert not self.active_players

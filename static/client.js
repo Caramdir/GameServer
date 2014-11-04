@@ -850,7 +850,9 @@ games.base = function() {
         });
     };
 
+    // todo: make a fixed div/span for waiting messages.
     var show_waiting_message = function(command) {
+        $("#waiting_message").remove();
         $("#interactions").append($("<span/>", {
             id: "waiting_message",
             html: command.message,

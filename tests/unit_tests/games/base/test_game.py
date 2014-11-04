@@ -59,6 +59,7 @@ class PlayerMetaTestCase(TestCase):
         self.assertTrue(iscoroutine(f.bar))
 
 
+# noinspection PyUnresolvedReferences
 class WaitingMessagesManagerTest(TestCase):
     def setUp(self):
         self.game = Mock()
@@ -98,21 +99,30 @@ class WaitingMessagesManagerTest(TestCase):
         self.assertTrue(self.wmm.several_players_are_active)
 
     def test_send_message_to(self):
+        self.player1.client.remove_permanent_messages = Mock()
+
         self.wmm._send_message_to(self.player1, "Foo")
-        self.assertEqual(
-            [{
+
+        self.player1.client.remove_permanent_messages.assert_called_with(self.wmm)
+        self.player1.client.assert_has_permanent_message(
+            self.wmm,
+            {
                 "command": "games.base.show_waiting_message",
                 "message": "Foo",
-            }],
-            self.player1.client.messages
+            }
         )
+        self.assertEqual(1, len(self.player1.client.messages))
 
     def test_clear_messages_for(self):
+        self.player1.client.remove_permanent_messages = Mock()
+
         self.wmm._clear_messages_for(self.player1)
+
         self.assertEqual(
             [{"command": "games.base.remove_waiting_message"}],
             self.player1.client.messages
         )
+        self.player1.client.remove_permanent_messages.assert_called_with(self.wmm)
 
     def test_one_player_active(self):
         self.wmm._send_message_to = Mock()
