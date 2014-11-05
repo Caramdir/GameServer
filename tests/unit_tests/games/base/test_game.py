@@ -1,10 +1,13 @@
 from unittest import TestCase
+from tornado.testing import AsyncTestCase, gen_test
 from unittest.mock import Mock, MagicMock, patch, call
 
+import tornado.concurrent
+import tornado.gen
 from base.client import MockClient
 from base.tools import coroutine, iscoroutine
 
-from games.base.game import Game, WaitingMessageContextManager, PlayerMeta, WaitingMessagesManager
+from games.base.game import Game, WaitingMessageContextManager, Player, WaitingMessagesManager, activity, activity_with_message
 
 
 def get_mock_player():
@@ -44,19 +47,101 @@ class WaitingMessageContextManagerTestCase(TestCase):
         self.assertEqual(2, len(player3.client.messages))
 
 
-class PlayerMetaTestCase(TestCase):
-    def test_coroutine_replacement(self):
-        class Foo(metaclass=PlayerMeta):
-            @coroutine
-            def bar(self):
-                pass
+# class PlayerMetaTestCase(TestCase):
+#     def test_coroutine_replacement(self):
+#         class Foo(metaclass=PlayerMeta):
+#             @coroutine
+#             def bar(self):
+#                 pass
+#
+#         f = Foo()
+#
+#         self.assertTrue(hasattr(f.bar, "decorators"))
+#         self.assertIn("activity", f.bar.decorators)
+#         self.assertIn("coroutine", f.bar.decorators)
+#         self.assertTrue(iscoroutine(f.bar))
 
-        f = Foo()
 
-        self.assertTrue(hasattr(f.bar, "decorators"))
-        self.assertIn("_player_activity", f.bar.decorators)
-        self.assertIn("coroutine", f.bar.decorators)
-        self.assertTrue(iscoroutine(f.bar))
+class PlayerTestCase(TestCase):
+    def test_start_activity(self):
+        game = Mock()
+        player = Player(MockClient(), game)
+
+        player.start_activity()
+
+        game.waiting_messages_manager.start_activity.assert_called_once_with(player, None)
+
+        game.waiting_messages_manager.start_activity.reset_mock()
+        player.start_activity("Foo")
+
+        game.waiting_messages_manager.start_activity.assert_called_once_with(player, "Foo")
+
+    def test_end_activity(self):
+        game = Mock()
+        player = Player(MockClient(), game)
+
+        player.end_activity()
+
+        game.waiting_messages_manager.end_activity.assert_called_once_with(player)
+
+        game.waiting_messages_manager.end_activity.reset_mock()
+        player.end_activity(tornado.concurrent.Future())
+
+        game.waiting_messages_manager.end_activity.assert_called_once_with(player)
+
+
+class ActivityDecoratorTest(AsyncTestCase):
+    @gen_test
+    def test_default(self):
+        class TestPlayer(Mock):
+            @activity
+            def foo(self):
+                yield tornado.gen.moment
+                return 2
+
+        player = TestPlayer()
+        player.start_activity = Mock()
+        player.end_activity = Mock()
+
+        self.assertTrue(iscoroutine(player.foo))
+        self.assertIn("activity", player.foo.decorators)
+
+        f = player.foo()
+
+        self.assertTrue(isinstance(f, tornado.concurrent.Future))
+        player.start_activity.assert_called_once_with(None)
+        self.assertFalse(player.end_activity.called)
+
+        r = yield f
+
+        self.assertEqual(2, r)
+        player.end_activity.assert_called_once_with(f)
+
+    @gen_test
+    def test_override_message(self):
+        class TestPlayer(Mock):
+            @activity_with_message("Foo")
+            def foo(self):
+                yield tornado.gen.moment
+                return 2
+
+        player = TestPlayer()
+        player.start_activity = Mock()
+        player.end_activity = Mock()
+
+        self.assertTrue(iscoroutine(player.foo))
+        self.assertIn("activity", player.foo.decorators)
+
+        f = player.foo()
+
+        self.assertTrue(isinstance(f, tornado.concurrent.Future))
+        player.start_activity.assert_called_once_with("Foo")
+        self.assertFalse(player.end_activity.called)
+
+        r = yield f
+
+        self.assertEqual(2, r)
+        player.end_activity.assert_called_once_with(f)
 
 
 # noinspection PyUnresolvedReferences

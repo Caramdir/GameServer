@@ -11,49 +11,60 @@ import base.client
 import base.locations
 import games.base.log
 from games.base.log import PlayerLogFacade, GameLogEntry
-from base.tools import english_join_list, singular_s, iscoroutine, decorator
+from base.tools import english_join_list, singular_s, iscoroutine, decorator, coroutine
 
 logger = logging.getLogger(__name__)
 
 
-@decorator
-def _player_activity(func):
+def activity(func):
     """
-    Decorator for ̀Player̀ methods with player activity, i.e. which call ̀client.query()̀.
+    Decorator for ̀Player̀ methods with player activity, i.e. which call ̀Client.query()̀.
 
-    This decorator is applied automatically to all coroutines in Player subclasses by
-    the ̀PlayerMetà meta class. It currently does nothing, but it will be used to
-    keep track of the active player to show "waiting for" messages (and maybe resign them
-    if they take too long).
+    This will make the decorated function into a coroutine and will call ̀Player.start_activity()̀
+    when the function is called and ̀Player.end_activity()̀ when it finishes.
     """
-    assert iscoroutine(func)
+    return _make_activity(func)
+
+
+def activity_with_message(message):
+    """
+    The same as ̀activitỳ, but specifies the message that is passed to ̀Player.start_activity()̀.
+    """
+    return functools.partial(_make_activity, message=message)
+
+
+def _make_activity(func, message=None):
+    if not iscoroutine(func):
+        func = coroutine(func)
 
     @functools.wraps(func)
     def wrapper(player, *args, **kwargs):
-        assert isinstance(player, Player)
-        player.start_activity()
+        player.start_activity(message)
         future = func(player, *args, **kwargs)
         future.add_done_callback(player.end_activity)
         return future
 
+    wrapper.decorators = func.decorators.copy()
+    wrapper.decorators.append("activity")
+
     return wrapper
 
 
-class PlayerMeta(type):
-    """
-    Meta class for Player objects.
-    """
-    def __new__(mcs, name, bases, dct):
-        """
-        Decorate all coroutines additionally with ̀_player_activitỳ.
-        """
-        for attr in dct:
-            if iscoroutine(dct[attr]):
-                dct[attr] = _player_activity(dct[attr])
-        return super().__new__(mcs, name, bases, dct)
+# class PlayerMeta(type):
+#     """
+#     Meta class for Player objects.
+#     """
+#     def __new__(mcs, name, bases, dct):
+#         """
+#         Decorate all coroutines additionally with ̀activitỳ.
+#         """
+#         for attr in dct:
+#             if iscoroutine(dct[attr]):
+#                 dct[attr] = activity(dct[attr])
+#         return super().__new__(mcs, name, bases, dct)
 
 
-class Player(metaclass=PlayerMeta):
+class Player():
     """
     The player class represents a player of the game.
 
@@ -86,7 +97,7 @@ class Player(metaclass=PlayerMeta):
     def start_activity(self, waiting_message=None):
         self.game.waiting_messages_manager.start_activity(self, waiting_message)
 
-    def end_activity(self):
+    def end_activity(self, future=None):
         self.game.waiting_messages_manager.end_activity(self)
 
     def full_ui_update(self):
