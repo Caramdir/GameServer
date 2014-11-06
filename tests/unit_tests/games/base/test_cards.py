@@ -187,6 +187,50 @@ class CardCollectionTest(unittest.TestCase):
 
         coll[0] = c2
 
+    def test_get_by_id(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        c1.id = "c1"
+        c2.id = "c2"
+        c3.id = "c3"
+        coll = CardCollection([c1, c2, c3])
+
+        self.assertEqual(c1, coll.get_by_id("c1"))
+        self.assertEqual(c2, coll.get_by_id("c2"))
+        self.assertEqual(c3, coll.get_by_id("c3"))
+        with self.assertRaises(KeyError):
+            coll.get_by_id("x")
+
+    def test_get_by_ids(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        c1.id = "c1"
+        c2.id = "c2"
+        c3.id = "c3"
+        coll = CardCollection([c1, c2, c3])
+
+        self.assertEqual([c1, c3], coll.get_by_ids("c1", "c3"))
+        self.assertEqual([c1, c3], coll.get_by_ids("c3", "c1"))
+        self.assertEqual([c2], coll.get_by_ids("c2"))
+        self.assertEqual([], coll.get_by_ids())
+        with self.assertRaises(KeyError):
+            coll.get_by_ids(["c1", "x"])
+        self.assertIsInstance(coll.get_by_ids("c3", "c1"), CardCollection)
+        self.assertIsInstance(coll.get_by_ids(), CardCollection)
+
+    def test_get_except_ids(self):
+        c1, c2, c3 = Card(), Card(), Card()
+        c1.id = "c1"
+        c2.id = "c2"
+        c3.id = "c3"
+        coll = CardCollection([c1, c2, c3])
+
+        self.assertEqual([c1, c3], coll.get_except_ids("c2"))
+        self.assertEqual([c2], coll.get_except_ids("c1", "c3"))
+        self.assertEqual([c2], coll.get_except_ids("c1", "c3", "x"))
+        self.assertEqual([], coll.get_except_ids("c1", "c2", "c3"))
+        self.assertEqual([c1, c2, c3], coll.get_except_ids("a", "b", "c"))
+        self.assertIsInstance(coll.get_except_ids("c1"), CardCollection)
+        self.assertIsInstance(coll.get_except_ids("c1", "c2", "c3"), CardCollection)
+
 
 class LocationCardCollectionTest(unittest.TestCase):
     def test_init_from(self):

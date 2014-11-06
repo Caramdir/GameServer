@@ -112,11 +112,15 @@ class CardCollection(list):
 
     def get_by_ids(self, *ids):
         """Get the cards with the given ids."""
-        return [c for c in self if c.id in ids]
+        found = [c for c in self if c.id in ids]
+        if len(found) != len(ids):
+            found_ids = [c.id for c in found]
+            raise KeyError([id for id in ids if not id in found_ids])
+        return CardCollection(found)
 
     def get_by_id(self, id):
         """Get the card with the given id."""
-        return self.get_by_ids([id])[0]
+        return self.get_by_ids(id)[0]
 
     def get_except_ids(self, *ids):
         """Get all cards except those with the given ids,"""
