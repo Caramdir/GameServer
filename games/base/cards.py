@@ -2,7 +2,7 @@ import random
 
 from tornado.gen import coroutine
 
-from base.client import ClientCommunicationError
+from games.base.game import CheaterException
 from games.base.log import PlayerLogEntry
 from base.tools import english_join_list, plural_s, a_or_number
 
@@ -276,9 +276,12 @@ class Hand(PlayerRelatedCardCollection, LocationCardCollection):
                 "games.base.cards.select",
                 prompt=prompt, minimum=minimum, maximum=maximum
             )
-            choices = self.get_by_ids(reply)
+            try:
+                choices = self.get_by_ids(reply)
+            except KeyError:
+                raise CheaterException(self.player, "Tried to select invalid cards.")
             if not minimum <= len(choices) <= maximum:
-                raise ClientCommunicationError(self.player.client, reply, "Selected wrong amount of cards.")
+                raise CheaterException(self.player, "Tried to selected wrong amount of cards.")
         else:
             choices = self[:]
 
