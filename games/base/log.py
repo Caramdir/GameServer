@@ -328,25 +328,32 @@ class PlayerLogFacade:
             message_other = message
         if message_other_tmp is None:
             self.add_entry(PlayerLogEntry(
-                message.format(Player="You", player="you", s="", es="", has="have", **kwargs),
-                message_other.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has", **kwargs),
+                message_self=message.format(Player="You", player="you", s="", es="", has="have", **kwargs),
+                message_other=message_other.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has", **kwargs),
+                message_final=message.format(Player=str(self.player), player=str(self.player), s="s", es="es", has="has", **kwargs),
                 reason=reason
             ))
         else:
             self.add_entry(PlayerLogEntry(
-                message.format(
+                message_self=message.format(
                     Player="You",
                     player="you",
                     s="", es="", has="have",
                     **kwargs
                 ),
-                message_other.format(
+                message_other=message_other.format(
                     Player=str(self.player),
                     player=str(self.player),
                     s="s", es="es", has="has",
                     **kwargs
                 ),
                 message_other_tmp=message_other_tmp.format(
+                    Player=str(self.player),
+                    player=str(self.player),
+                    s="s", es="es", has="has",
+                    **kwargs
+                ),
+                message_final=message.format(
                     Player=str(self.player),
                     player=str(self.player),
                     s="s", es="es", has="has",
