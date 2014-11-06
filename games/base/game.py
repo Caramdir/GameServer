@@ -50,20 +50,6 @@ def _make_activity(func, message=None):
     return wrapper
 
 
-# class PlayerMeta(type):
-#     """
-#     Meta class for Player objects.
-#     """
-#     def __new__(mcs, name, bases, dct):
-#         """
-#         Decorate all coroutines additionally with ̀activitỳ.
-#         """
-#         for attr in dct:
-#             if iscoroutine(dct[attr]):
-#                 dct[attr] = activity(dct[attr])
-#         return super().__new__(mcs, name, bases, dct)
-
-
 class Player():
     """
     The player class represents a player of the game.
@@ -97,6 +83,7 @@ class Player():
     def start_activity(self, waiting_message=None):
         self.game.waiting_messages_manager.start_activity(self, waiting_message)
 
+    # noinspection PyUnusedLocal
     def end_activity(self, future=None):
         self.game.waiting_messages_manager.end_activity(self)
 
@@ -224,6 +211,7 @@ class Game(base.locations.Location):
         self.game_identifier = game_identifier
         self.running = False
         self._log = None
+        self.waiting_messages_manager = WaitingMessagesManager(self)
 
         # Move clients as late sa possible, so that variables are already set when
         # `send_init()` is called.
@@ -364,58 +352,6 @@ class Game(base.locations.Location):
             lobby.games.remove(self)
         except KeyError:
             logger.debug("Tried to remove a game that has never been added to the lobby.")
-
-    def waiting_message(self, player, message="Waiting for {}"):
-        """
-        Display a "Waiting for `player`" type message to other players.
-
-        This returns a context manager that should be used with the `with`
-        statement.
-
-        Only one player should use this at the same time and calling this
-        multiple nested times is not supported.
-
-        :param player: The player currently doing an action.
-        :type player: Player
-        :param message: The message to display to other players.
-                        `{}` with be replaced with the player name.
-        :return: A context manager.
-        """
-        return WaitingMessageContextManager(self, player, message.format(player))
-
-
-class WaitingMessageContextManager:
-    def __init__(self, game, player, message):
-        """
-        The context manager that handles "waiting for"-messages.
-
-        :param game: The current game.
-        :type game: Game
-        :param player: The player doing an action.
-        :type player: Player
-        :param message: The message to display to other players.
-        :type message: str
-        """
-        self.game = game
-        self.player = player
-        self.message = message
-
-    def __enter__(self):
-        for player in self.game.all_players:
-            if player != self.player:
-                player.client.send_permanent_message(
-                    self,
-                    {
-                        "command": "games.base.show_waiting_message",
-                        "message": self.message
-                    }
-                )
-
-    def __exit__(self, type, value, traceback):
-        for player in self.game.all_players:
-            if player != self.player:
-                player.client.remove_permanent_messages(self)
-                player.client.send_message({"command": "games.base.remove_waiting_message"})
 
 
 class WaitingMessagesManager:

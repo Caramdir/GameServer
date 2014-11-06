@@ -2,7 +2,7 @@ from tornado.gen import coroutine
 
 import games.lobby
 import games.base.game
-from games.base.game import CheaterException, EndGameException, PlayerResignedException
+from games.base.game import CheaterException, EndGameException, PlayerResignedException, activity
 from games.base.log import TurnLog, GameLogEntry
 import games.base.cards
 import games.base.playing_cards
@@ -211,7 +211,7 @@ class Game(games.base.game.Game):
         """
         A player has resigned.
 
-        On of the players in currently waiting for user input. The resigning
+        One of the players in currently waiting for user input. The resigning
         player's interactions have already been cancelled by the general
         resignation mechanism. So we just cancel the other player's interactions.
 
@@ -287,11 +287,10 @@ class Player(games.base.game.Player):
         cards = self.game.deck.draw(amount, collection=True, log=True, player=self)
         self.hand.extend(cards)
 
-    @coroutine
+    @activity
     def play_card(self, lead_card=None):
         """Play the trick"""
-        with self.game.waiting_message(self):
-            return (yield self._play_card(lead_card))
+        return (yield self._play_card(lead_card))
 
     @coroutine
     def _play_card(self, lead_card=None):
